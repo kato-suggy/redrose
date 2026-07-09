@@ -39,19 +39,29 @@ app.get("/", async (c) => {
           </h1>
           <p class="mt-2 text-teal">${site.tagline}</p>
           <p class="mt-8 text-sm opacity-70">
-            M1 — booking core live (API only; booking UI lands in M2).
-            Placeholder services below prove the D1 → SSR pipeline works.
+            M2 — booking is live end to end (test mode). Services below are
+            placeholders until Lorena confirms the real list.
           </p>
           <ul class="mt-6 space-y-2">
             ${results.map(
               (s) => html`
-                <li class="rounded border border-teal/30 bg-white/60 px-4 py-3">
-                  <span class="font-medium">${s.name}</span>
-                  <span class="ml-2 text-sm opacity-70">
-                    ${s.duration_mins} mins ·
-                    ${formatPence(pence(s.price_pence))} (deposit
-                    ${formatPence(pence(s.deposit_pence))})
-                  </span>
+                <li
+                  class="flex items-center justify-between gap-3 rounded border border-teal/30 bg-white/60 px-4 py-3"
+                >
+                  <div>
+                    <span class="font-medium">${s.name}</span>
+                    <span class="ml-2 text-sm opacity-70">
+                      ${s.duration_mins} mins ·
+                      ${formatPence(pence(s.price_pence))} (deposit
+                      ${formatPence(pence(s.deposit_pence))})
+                    </span>
+                  </div>
+                  <a
+                    href="/book/${s.id}"
+                    class="shrink-0 rounded bg-crimson px-4 py-2 text-sm font-medium text-cream"
+                  >
+                    Book
+                  </a>
                 </li>
               `
             )}
