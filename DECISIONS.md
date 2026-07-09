@@ -1,6 +1,6 @@
 # Red Rose Ink & Beauty — Project Decisions
 
-_Living log of locked decisions and open questions. Last updated: 29 June 2026._
+_Living log of locked decisions and open questions. Last updated: 9 July 2026._
 
 ## Locked decisions
 
@@ -16,7 +16,10 @@ _Living log of locked decisions and open questions. Last updated: 29 June 2026._
   **TypeScript + Hono on Cloudflare Workers** (edge SSR), **Tailwind CSS**, content as typed JSON.
 - **Cloudflare D1** storage; slot-based booking model. Cal.com dropped (Next.js + Postgres,
   doesn't fit Workers); double-booking prevented by a partial unique index in SQLite.
-- Interactivity stays hypermedia-style (SSR + fetch/datastar sprinkles); **no SPA framework**.
+- Interactivity stays hypermedia-style (SSR + fetch sprinkles); **no SPA framework**.
+- **M2 booking UI: vanilla fetch + HTML fragments** (decided 9 Jul 2026). Datastar deferred —
+  likely for M3 admin / later features; keep fragment endpoints library-agnostic so it can be
+  adopted without restructuring.
 - **Rust: confirmed out for this project** — saved for a future one ("right stack for the job").
   Instead the booking code is written **Rust-style TypeScript**: discriminated-union state
   machine for booking status, exhaustive `switch` with `never`, branded `Pence` type,

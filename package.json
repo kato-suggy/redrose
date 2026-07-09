@@ -13,7 +13,8 @@
     "deploy": "npm run build:css && wrangler deploy"
   },
   "dependencies": {
-    "hono": "^4.6.0"
+    "hono": "^4.6.0",
+    "stripe": "^22.3.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250101.0",
