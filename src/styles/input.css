@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+/*
+ * Brand tokens — the single place styling lives until the Claude Design pass.
+ * Working values; refine against the vectorised logo. Utilities generated:
+ * bg-crimson, text-teal, font-display, bg-cream, text-ink, etc.
+ */
+@theme {
+  --color-crimson: #8e1b2e;
+  --color-teal: #2a6f77;
+  --color-ink: #1a1616;
+  --color-cream: #f7efe2;
+
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-body: "Jost", system-ui, sans-serif;
+}

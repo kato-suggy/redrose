@@ -1,0 +1,5 @@
+# Copy to .dev.vars (gitignored) and fill in. Production values go in via `wrangler secret put`.
+STRIPE_SECRET_KEY=sk_test_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx   # printed by `stripe listen --forward-to localhost:8787/webhooks/stripe`
+RESEND_API_KEY=re_xxx
+ADMIN_PASSWORD=choose-something-long

@@ -1,0 +1,17 @@
+name = "redrose"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+
+# Static assets (built CSS, images). Files here are served directly;
+# everything else falls through to the Worker.
+[assets]
+directory = "./public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "redrose"
+database_id = "placeholder-until-wrangler-d1-create"
+migrations_dir = "migrations"
+
+# Secrets (set via `wrangler secret put NAME`, or .dev.vars locally):
+#   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY, ADMIN_PASSWORD

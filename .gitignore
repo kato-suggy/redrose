@@ -1,0 +1,18 @@
+# deps / tooling
+node_modules/
+.wrangler/
+.DS_Store
+
+# secrets — never commit
+.dev.vars
+
+# built artifacts
+public/styles.css
+
+# session/private files — not part of the public repo
+.remember/
+Lorena-Website-Plan.md
+Red-Rose-Website-Plan.docx
+
+# personal local settings
+.claude/settings.local.json

@@ -1,0 +1,26 @@
+{
+  "name": "redrose",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Website + booking system for Red Rose Ink & Beauty — cosmetic tattooing, Newcastle UK",
+  "scripts": {
+    "dev": "concurrently -n worker,css -c blue,magenta \"wrangler dev\" \"npm run dev:css\"",
+    "dev:css": "tailwindcss -i src/styles/input.css -o public/styles.css --watch",
+    "build:css": "tailwindcss -i src/styles/input.css -o public/styles.css --minify",
+    "check": "tsc --noEmit",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate": "wrangler d1 migrations apply DB --remote",
+    "deploy": "npm run build:css && wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "@tailwindcss/cli": "^4.0.0",
+    "concurrently": "^9.0.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.5.0",
+    "wrangler": "^4.0.0"
+  }
+}
