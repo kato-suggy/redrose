@@ -5,11 +5,15 @@ import { formatPence, pence, type Service } from "./types";
 import type { Bindings } from "./env";
 import { layout } from "./layout";
 import booking from "./routes/booking";
+import admin from "./routes/admin";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
 // Booking engine: /api/slots, /book, /booking/*, /webhooks/stripe
 app.route("/", booking);
+
+// Lorena's admin (basic auth)
+app.route("/admin", admin);
 
 // ---------- routes ----------
 app.get("/", async (c) => {

@@ -294,6 +294,92 @@ export async function cancelBooking(
   return res.meta.changes === 1;
 }
 
+// ---------- admin ----------
+
+export async function createSlot(
+  db: D1Database,
+  startsAt: number,
+  endsAt: number
+): Promise<number> {
+  const row = await db
+    .prepare(
+      "INSERT INTO slots (starts_at, ends_at) VALUES (?1, ?2) RETURNING id"
+    )
+    .bind(startsAt, endsAt)
+    .first<{ id: number }>();
+  return row!.id;
+}
+
+/** A slot with whatever live booking sits on it (for the admin list). */
+export interface AdminSlotRow {
+  id: number;
+  starts_at: number;
+  ends_at: number;
+  status: "open" | "blocked";
+  booking_id: string | null;
+  booking_status: BookingStatus | null;
+  client_name: string | null;
+}
+
+export async function listSlotsAdmin(
+  db: D1Database,
+  from: number
+): Promise<AdminSlotRow[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT s.id, s.starts_at, s.ends_at, s.status,
+              b.id AS booking_id, b.status AS booking_status, b.client_name
+       FROM slots s
+       LEFT JOIN bookings b ON b.slot_id = s.id
+         AND (b.status = 'confirmed'
+              OR (b.status = 'pending_payment' AND b.expires_at >= ?2))
+       WHERE s.starts_at >= ?1
+       ORDER BY s.starts_at`
+    )
+    .bind(from, nowEpoch())
+    .all<AdminSlotRow>();
+  return results;
+}
+
+/**
+ * Block/unblock a slot. Refuses (returns false) if a live booking sits on
+ * it — blocking must never orphan a paid appointment.
+ */
+export async function setSlotStatus(
+  db: D1Database,
+  slotId: number,
+  status: "open" | "blocked"
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `UPDATE slots SET status = ?1 WHERE id = ?2 AND NOT EXISTS (
+         SELECT 1 FROM bookings b WHERE b.slot_id = slots.id
+           AND (b.status = 'confirmed'
+                OR (b.status = 'pending_payment' AND b.expires_at >= ?3)))`
+    )
+    .bind(status, slotId, nowEpoch())
+    .run();
+  return res.meta.changes === 1;
+}
+
+/** Upcoming live bookings (confirmed + genuinely-pending), soonest first. */
+export async function listUpcomingBookings(
+  db: D1Database,
+  from: number
+): Promise<BookingDetail[]> {
+  const { results } = await db
+    .prepare(
+      `${DETAIL_SELECT}
+       WHERE s.starts_at >= ?1
+         AND (b.status = 'confirmed'
+              OR (b.status = 'pending_payment' AND b.expires_at >= ?2))
+       ORDER BY s.starts_at`
+    )
+    .bind(from, nowEpoch())
+    .all<DetailRow>();
+  return results.map(toDetail);
+}
+
 export async function getBookingByToken(
   db: D1Database,
   token: string
