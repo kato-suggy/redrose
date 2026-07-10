@@ -1,15 +1,16 @@
 @import "tailwindcss";
 
 /*
- * Brand tokens — the single place styling lives until the Claude Design pass.
- * Working values; refine against the vectorised logo. Utilities generated:
- * bg-crimson, text-teal, font-display, bg-cream, text-ink, etc.
+ * Brand tokens — locked against the Claude Design mockup
+ * (Red Rose Landing.dc.html, Kate's claude.ai/design project).
+ * Utilities generated: bg-crimson, text-teal, font-display, bg-cream, etc.
  */
 @theme {
   --color-crimson: #8e1b2e;
+  --color-crimson-deep: #741524; /* hover state */
   --color-teal: #2a6f77;
-  --color-ink: #1a1616;
-  --color-cream: #f7efe2;
+  --color-ink: #1b1614;
+  --color-cream: #f6f1e8;
 
   --font-display: "Playfair Display", Georgia, serif;
   --font-body: "Jost", system-ui, sans-serif;

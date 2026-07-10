@@ -44,6 +44,7 @@ import {
   sendConfirmationEmails,
   sendOpsNotice,
 } from "../lib/email";
+import { priceRow, utilityCaps, type LandingServiceRow } from "./landing";
 import site from "../../content/site.json";
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -70,6 +71,44 @@ app.get("/api/slots", async (c) => {
       starts_at_london: formatLondon(s.starts_at),
     })),
   });
+});
+
+// ---------- GET /book — treatment chooser ----------
+// Every "Book now" CTA lands here; each service row goes to its slot picker.
+app.get("/book", async (c) => {
+  const { results: services } = await c.env.DB.prepare(
+    "SELECT id, section, name, duration_mins, price_pence, deposit_pence FROM services WHERE active = 1 ORDER BY section, sort"
+  ).all<LandingServiceRow>();
+
+  return c.html(
+    layout(
+      "Book an appointment",
+      html`
+        <main class="mx-auto max-w-2xl px-6 py-10">
+          <a class="text-sm text-teal underline" href="/">&larr; Back</a>
+          <h1 class="font-display mt-4 text-[32px] font-medium italic text-crimson">
+            Book an appointment
+          </h1>
+          <p class="mt-2 text-sm text-ink/70">${site.bookingNotice}</p>
+          ${site.sections.map((meta) => {
+            const list = services.filter((s) => s.section === meta.key);
+            if (list.length === 0) return html``;
+            return html`
+              <section id="${meta.key}" class="mt-9">
+                <p class="${utilityCaps} m-0 mb-1">
+                  ${meta.number} — ${meta.key.toUpperCase()}
+                </p>
+                <h2 class="font-display m-0 mb-1 text-[24px] font-medium italic text-ink">
+                  ${meta.title}
+                </h2>
+                ${list.map(priceRow)}
+              </section>
+            `;
+          })}
+        </main>
+      `
+    )
+  );
 });
 
 // ---------- GET /book/:serviceId — slot picker + details form ----------

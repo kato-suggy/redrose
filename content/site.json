@@ -1,8 +1,36 @@
 {
   "businessName": "Red Rose Ink & Beauty",
   "tagline": "Semi-permanent makeup, Newcastle",
-  "instagram": "https://instagram.com/redroseinknbeauty",
+  "heroHeadline": "Wake up already done. Brows, lips, lashes & freckles — inked softly, by Lorena.",
+  "instagram": "https://www.instagram.com/redrose.inknbeauty/",
+  "instagramLabel": "@REDROSE.INKNBEAUTY",
   "salonAddress": "PLACEHOLDER — salon address TBC",
   "bookingNotice": "A deposit secures your appointment; the balance is paid at the salon.",
-  "cancellationPolicy": "Cancel at least 48 hours before your appointment for a full deposit refund. Within 48 hours the deposit is non-refundable, but message Lorena and she'll do her best to rearrange."
+  "cancellationPolicy": "Cancel at least 48 hours before your appointment for a full deposit refund. Within 48 hours the deposit is non-refundable, but message Lorena and she'll do her best to rearrange.",
+  "sections": [
+    {
+      "key": "lashes",
+      "number": "01",
+      "title": "Lash extensions & lifts",
+      "blurb": ""
+    },
+    {
+      "key": "freckles",
+      "number": "02",
+      "title": "Faux freckles",
+      "blurb": "Natural scattered freckles, tattooed softly."
+    },
+    {
+      "key": "brows",
+      "number": "03",
+      "title": "Ombré powder brows",
+      "blurb": "Includes consultation & patch test."
+    },
+    {
+      "key": "lips",
+      "number": "04",
+      "title": "Lip blush",
+      "blurb": "Semi-permanent lip colour and definition."
+    }
+  ]
 }

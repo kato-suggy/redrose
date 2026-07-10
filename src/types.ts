@@ -96,11 +96,21 @@ export function assertNever(x: never): never {
 }
 
 // ---------- Site content (content/site.json) ----------
+export interface SectionContent {
+  key: Section;
+  number: string; // "01" … "04" — editorial section numbering on the landing
+  title: string; // display title ("Lash extensions & lifts"), not the DB name
+  blurb: string; // one-liner under the price list; empty = omit
+}
+
 export interface SiteContent {
   businessName: string;
   tagline: string;
+  heroHeadline: string;
   instagram: string;
+  instagramLabel: string;
   salonAddress: string; // TBC — placeholder until Lorena confirms
   bookingNotice: string;
   cancellationPolicy: string;
+  sections: SectionContent[];
 }
