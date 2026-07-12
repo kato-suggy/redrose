@@ -39,13 +39,17 @@ export const priceRow = (s: BrochureServiceRow) => html`
   </div>
 `;
 
-/** "Red Rose" plate-stamp overlaid inside an image container (clips with it). */
+/**
+ * "Red Rose" spine overlaid inside an image container (clips with it):
+ * vertical along the bottom-left edge, quiet — a plate mark, not a shout.
+ * The narrow gradient keeps cream legible on pale imagery.
+ */
 export const imageWordmark = () => html`
   <div
-    class="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[45%] bg-gradient-to-t from-ink/35 to-transparent"
+    class="pointer-events-none absolute inset-y-0 left-0 z-[1] w-24 bg-gradient-to-r from-ink/30 to-transparent"
   ></div>
   <span
-    class="font-display pointer-events-none absolute bottom-1 left-4 z-[2] whitespace-nowrap text-[19vw] font-medium italic leading-none tracking-[-.015em] text-cream [text-shadow:0_0_50px_rgba(0,0,0,.25)] md:text-[7vw]"
+    class="font-display pointer-events-none absolute bottom-3 left-2.5 z-[2] whitespace-nowrap text-[40px] italic leading-none tracking-[.02em] text-cream/80 [text-shadow:0_0_24px_rgba(0,0,0,.35)] [writing-mode:vertical-rl] md:text-[48px]"
     >Red Rose</span
   >
 `;
