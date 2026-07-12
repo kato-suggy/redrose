@@ -140,7 +140,7 @@ app.get("/about", (c) => {
                 </p>`
               )}
               <a
-                href="/book"
+                href="/treatments"
                 class="mt-2 inline-flex min-h-[44px] items-center text-[13px] font-semibold uppercase tracking-[.2em] text-crimson underline underline-offset-4 hover:text-crimson-deep"
                 >Book with Lorena →</a
               >

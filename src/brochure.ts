@@ -19,26 +19,35 @@ export interface BrochureServiceRow {
 
 export const utilityCaps = "font-medium tracking-[.28em] text-teal text-[10.5px]";
 
-/** A bookable service line — the whole row deep-links into the slot picker. */
+/** A bookable service line: details left (price inline), Book button right. */
 export const priceRow = (s: BrochureServiceRow) => html`
-  <a
-    href="/book/${s.id}"
-    class="group flex items-baseline justify-between gap-4 border-b border-ink/15 py-3.5 no-underline"
-  >
-    <span class="text-[16px] font-medium text-ink md:text-[17px]">
-      ${s.name}
-      <span
-        class="mt-0.5 block text-[13px] font-normal tracking-[.06em] text-ink/60 uppercase"
-      >
-        ${s.duration_mins} mins · ${formatPence(pence(s.deposit_pence))} deposit
+  <div class="flex items-center justify-between gap-4 border-b border-ink/15 py-3.5">
+    <div>
+      <span class="block text-[16px] font-medium text-ink md:text-[17px]">${s.name}</span>
+      <span class="mt-0.5 block text-[13px] tracking-[.06em] text-ink/60 uppercase">
+        ${s.duration_mins} mins ·
+        <span class="font-medium text-crimson">${formatPence(pence(s.price_pence))}</span>
+        · ${formatPence(pence(s.deposit_pence))} deposit
       </span>
-    </span>
-    <span
-      class="font-display whitespace-nowrap text-[19px] text-crimson group-hover:underline md:text-[20px]"
+    </div>
+    <a
+      href="/book/${s.id}"
+      class="flex min-h-[44px] shrink-0 items-center justify-center border-[1.5px] border-crimson px-6 text-[12px] font-semibold uppercase tracking-[.2em] text-crimson no-underline transition-colors hover:bg-crimson hover:text-cream"
     >
-      ${formatPence(pence(s.price_pence))}
-    </span>
-  </a>
+      Book
+    </a>
+  </div>
+`;
+
+/** "Red Rose" plate-stamp overlaid inside an image container (clips with it). */
+export const imageWordmark = () => html`
+  <div
+    class="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[45%] bg-gradient-to-t from-ink/35 to-transparent"
+  ></div>
+  <span
+    class="font-display pointer-events-none absolute bottom-1 left-4 z-[2] whitespace-nowrap text-[19vw] font-medium italic leading-none tracking-[-.015em] text-cream [text-shadow:0_0_50px_rgba(0,0,0,.25)] md:text-[7vw]"
+    >Red Rose</span
+  >
 `;
 
 export const solidBtn = (href: string, label: string, extra = "") => html`
@@ -75,7 +84,7 @@ export const brochureNav = () => html`
       </a>
       <span class="text-[11px] font-medium tracking-[.26em] text-ink">NEWCASTLE, UK</span>
       <a
-        href="/book"
+        href="/treatments"
         class="inline-flex min-h-[44px] items-center justify-center bg-crimson px-[26px] text-[12px] font-semibold tracking-[.22em] text-cream no-underline transition-colors hover:bg-crimson-deep"
         >BOOK NOW</a
       >
@@ -128,6 +137,6 @@ export const fixedBookBar = () => html`
       <span class="font-display text-[15px] italic text-cream">red rose</span>
       <span class="text-[9.5px] tracking-[.22em] text-cream/60">NEWCASTLE, UK</span>
     </div>
-    ${solidBtn("/book", "Book now", "min-h-[60px] min-w-[150px]")}
+    ${solidBtn("/treatments", "Book now", "min-h-[60px] min-w-[150px]")}
   </div>
 `;
