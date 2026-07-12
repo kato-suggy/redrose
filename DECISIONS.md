@@ -53,8 +53,11 @@ _Living log of locked decisions and open questions. Last updated: 9 July 2026._
 - Typed JSON in `/content`, schema in `src/types.ts`; Google Sheets self-service deferred.
 
 ## Open questions / waiting on
-- **Lorena:** confirm domain spelling (buy same day) · improved logo image · hero photos for the
-  4 sections · real treatment list (names, durations, prices) · confirm/adjust section names.
+- **Lorena:** confirm domain spelling (buy same day) · improved logo image (ideally the
+  designer's source vector) · hero photos for the 4 sections · real treatment list (names,
+  durations, prices) · confirm/adjust section names · bio text + photo for /about ·
+  Google Business profile (reviews band ships with reviews Kate sources from other
+  platforms until then).
 - **By launch:** salon address + Lorena's notification email address (both go in confirmation
   emails) · Lorena's mailbox route — free (Cloudflare Email Routing → Gmail, send-as via Resend
   SMTP) vs Google Workspace (~£5/mo).

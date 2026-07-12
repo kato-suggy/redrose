@@ -44,7 +44,7 @@ import {
   sendConfirmationEmails,
   sendOpsNotice,
 } from "../lib/email";
-import { priceRow, utilityCaps, type LandingServiceRow } from "./landing";
+import { priceRow, utilityCaps, type BrochureServiceRow } from "../brochure";
 import site from "../../content/site.json";
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -78,7 +78,7 @@ app.get("/api/slots", async (c) => {
 app.get("/book", async (c) => {
   const { results: services } = await c.env.DB.prepare(
     "SELECT id, section, name, duration_mins, price_pence, deposit_pence FROM services WHERE active = 1 ORDER BY section, sort"
-  ).all<LandingServiceRow>();
+  ).all<BrochureServiceRow>();
 
   return c.html(
     layout(

@@ -103,6 +103,12 @@ export interface SectionContent {
   blurb: string; // one-liner under the price list; empty = omit
 }
 
+export interface Review {
+  quote: string;
+  name: string;
+  source: string; // platform label ("GOOGLE", "FACEBOOK", …) shown in caps
+}
+
 export interface SiteContent {
   businessName: string;
   tagline: string;
@@ -113,4 +119,8 @@ export interface SiteContent {
   bookingNotice: string;
   cancellationPolicy: string;
   sections: SectionContent[];
+  reviews: Review[]; // interim: sourced from other platforms; Google post-launch
+  bioIntro: string; // mini bio on the landing; TBC with Lorena
+  lorenaPhoto: string; // path under /public; "" renders the placeholder block
+  aboutBody: string[]; // paragraphs for /about; TBC with Lorena
 }

@@ -1,115 +1,66 @@
 /**
- * Landing page — implements "Red Rose Landing.dc.html" from Kate's
- * claude.ai/design project (fetched 11 Jul 2026). Mobile-first: stacked
- * hero panels with a vertical wordmark; desktop: split two-up hero with
- * the giant wordmark breaking the seam. Section meta lives in
- * content/site.json; prices come live from D1.
+ * Landing page. Evolved from "Red Rose Landing.dc.html" (Kate's Claude
+ * Design project): the hero and visual language are the mockup's, but the
+ * per-section price lists moved to /treatments — the landing now shows each
+ * image exactly once (brows, lashes in the hero; freckles, lips as cards),
+ * a four-row treatments menu, a reviews band, and a mini bio for /about.
  */
 
 import { Hono } from "hono";
 import { html } from "hono/html";
-import type { HtmlEscapedString } from "hono/utils/html";
 import site from "../../content/site.json";
 import type { Bindings } from "../env";
 import { layout } from "../layout";
 import { formatPence, pence, type SectionContent } from "../types";
+import {
+  brochureFooter,
+  brochureNav,
+  fixedBookBar,
+  solidBtn,
+  outlineBtn,
+  utilityCaps,
+  type BrochureServiceRow,
+} from "../brochure";
 
 const app = new Hono<{ Bindings: Bindings }>();
-
-export interface LandingServiceRow {
-  id: number;
-  section: string;
-  name: string;
-  duration_mins: number;
-  price_pence: number;
-  deposit_pence: number;
-}
-type ServiceRow = LandingServiceRow;
-
-// ---------- shared fragments (also used by the /book chooser) ----------
-
-export const utilityCaps = "font-medium tracking-[.28em] text-teal text-[10.5px]";
-
-export const priceRow = (s: ServiceRow) => html`
-  <a
-    href="/book/${s.id}"
-    class="group flex items-baseline justify-between gap-4 border-b border-ink/15 py-3.5 no-underline"
-  >
-    <span class="text-[16px] font-medium text-ink md:text-[17px]">
-      ${s.name}
-      <span
-        class="mt-0.5 block text-[13px] font-normal tracking-[.06em] text-ink/60 uppercase"
-      >
-        ${s.duration_mins} mins · ${formatPence(pence(s.deposit_pence))} deposit
-      </span>
-    </span>
-    <span
-      class="font-display whitespace-nowrap text-[19px] text-crimson group-hover:underline md:text-[20px]"
-    >
-      ${formatPence(pence(s.price_pence))}
-    </span>
-  </a>
-`;
-
-const solidBtn = (href: string, label: string, extra = "") => html`
-  <a
-    href="${href}"
-    class="flex min-h-[56px] items-center justify-center bg-crimson text-[13px] font-semibold uppercase tracking-[.2em] text-cream no-underline transition-colors hover:bg-crimson-deep ${extra}"
-  >
-    ${label}
-  </a>
-`;
-
-const outlineBtn = (href: string, label: string, extra = "") => html`
-  <a
-    href="${href}"
-    class="flex min-h-[54px] items-center justify-center border-[1.5px] border-crimson text-[13px] font-semibold uppercase tracking-[.2em] text-crimson no-underline transition-colors hover:bg-crimson hover:text-cream ${extra}"
-  >
-    ${label}
-  </a>
-`;
-
-/** Section body: number, title, price rows, blurb, book button. */
-const sectionBody = (
-  meta: SectionContent,
-  services: ServiceRow[],
-  button: HtmlEscapedString | Promise<HtmlEscapedString>
-) => html`
-  <p class="${utilityCaps} m-0 mb-1">
-    ${meta.number} — ${meta.key.toUpperCase()}
-  </p>
-  <h2 class="font-display m-0 mb-2 text-[26px] font-medium italic text-ink md:mb-3 md:text-[30px]">
-    ${meta.title}
-  </h2>
-  ${services.map(priceRow)}
-  ${meta.blurb
-    ? html`<p class="mb-0 mt-3.5 text-[13px] text-ink/65 md:text-[14px]">
-        ${meta.blurb}
-      </p>`
-    : ""}
-  ${button}
-`;
-
-// ---------- GET / ----------
 
 app.get("/", async (c) => {
   const { results: services } = await c.env.DB.prepare(
     "SELECT id, section, name, duration_mins, price_pence, deposit_pence FROM services WHERE active = 1 ORDER BY section, sort"
-  ).all<ServiceRow>();
+  ).all<BrochureServiceRow>();
 
-  const bySection = new Map<string, ServiceRow[]>();
-  for (const s of services) {
-    const list = bySection.get(s.section);
-    if (list) list.push(s);
-    else bySection.set(s.section, [s]);
-  }
   const sections = site.sections as SectionContent[];
-  const meta = (key: string) => sections.find((s) => s.key === key)!;
-  /** One service → book it directly; several → the /book chooser. */
-  const bookHref = (key: string) => {
-    const list = bySection.get(key) ?? [];
-    const only = list.length === 1 ? list[0] : undefined;
-    return only ? `/book/${only.id}` : `/book#${key}`;
+  const fromPrice = (key: string) => {
+    const prices = services
+      .filter((s) => s.section === key)
+      .map((s) => s.price_pence);
+    return prices.length ? formatPence(pence(Math.min(...prices))) : "";
+  };
+  const card = (key: "freckles" | "lips", objPos: string) => {
+    const meta = sections.find((s) => s.key === key)!;
+    return html`
+      <section class="border-b border-crimson/30 md:border-b-0">
+        <a href="/treatments#${key}" class="block no-underline">
+          <div class="h-[420px] overflow-hidden md:h-[520px]">
+            <img
+              src="/img/${key}@2x.webp"
+              alt="${meta.title}"
+              class="block h-full w-full object-cover ${objPos}"
+            />
+          </div>
+        </a>
+        <div class="px-[22px] pb-9 pt-[26px] md:border-t md:border-crimson/30 md:px-9 md:pb-11 md:pt-8">
+          <p class="${utilityCaps} m-0 mb-1">${meta.number} — ${key.toUpperCase()}</p>
+          <h2 class="font-display m-0 mb-1 text-[26px] font-medium italic text-ink md:text-[30px]">
+            ${meta.title}
+          </h2>
+          <p class="m-0 text-[13px] tracking-[.06em] text-ink/60 uppercase md:text-[14px]">
+            from ${fromPrice(key)}
+          </p>
+          ${outlineBtn(`/treatments#${key}`, `Book ${key}`, "mt-5 md:mt-6")}
+        </div>
+      </section>
+    `;
   };
 
   return c.html(
@@ -117,60 +68,18 @@ app.get("/", async (c) => {
       site.tagline,
       html`
         <div class="pb-[60px] md:pb-0">
-          <!-- ============ nav ============ -->
-          <header>
-            <div
-              class="flex items-center justify-between gap-2.5 px-[18px] py-2.5 md:hidden"
-            >
-              <span class="text-[9.5px] font-medium tracking-[.2em] text-ink"
-                >INK —— BEAUTY</span
-              >
-              <a href="/" class="no-underline">
-                <img
-                  src="/redrose_logo.svg"
-                  alt="${site.businessName}"
-                  class="block h-[60px] w-auto"
-                />
-              </a>
-              <span class="text-[9.5px] font-medium tracking-[.2em] text-ink"
-                >NEWCASTLE, UK</span
-              >
-            </div>
-            <div
-              class="hidden items-center justify-between px-8 py-2.5 md:flex"
-            >
-              <a href="/" class="no-underline">
-                <img
-                  src="/redrose_logo.svg"
-                  alt="${site.businessName}"
-                  class="block h-16 w-auto"
-                />
-              </a>
-              <span class="text-[11px] font-medium tracking-[.26em] text-ink"
-                >NEWCASTLE, UK</span
-              >
-              <a
-                href="/book"
-                class="inline-flex min-h-[44px] items-center justify-center bg-crimson px-[26px] text-[12px] font-semibold tracking-[.22em] text-cream no-underline transition-colors hover:bg-crimson-deep"
-                >BOOK NOW</a
-              >
-            </div>
-          </header>
+          ${brochureNav()}
 
-          <!-- ============ hero ============ -->
+          <!-- ============ hero: brows + lashes ============ -->
           <div class="relative overflow-hidden">
-            <div
-              class="grid grid-rows-[430px_430px] md:h-[720px] md:grid-cols-2 md:grid-rows-1"
-            >
+            <div class="grid grid-rows-[430px_430px] md:h-[720px] md:grid-cols-2 md:grid-rows-1">
               <div class="relative overflow-hidden">
                 <img
                   src="/img/brows@2x.webp"
                   alt="Brows — cosmetic tattoo portrait"
                   class="block h-full w-full object-cover object-[72%_22%] md:object-[60%_18%]"
                 />
-                <div
-                  class="absolute inset-0 bg-crimson/60 mix-blend-multiply"
-                ></div>
+                <div class="absolute inset-0 bg-crimson/60 mix-blend-multiply"></div>
               </div>
               <div class="relative overflow-hidden">
                 <img
@@ -184,58 +93,44 @@ app.get("/", async (c) => {
               </div>
             </div>
 
-            <!-- desktop bottom scrim -->
             <div
               class="absolute inset-x-0 bottom-0 z-[2] hidden h-[300px] bg-gradient-to-t from-ink/40 to-transparent md:block"
             ></div>
 
-            <!-- mobile: vertical wordmark spanning both panels -->
-            <div
-              class="pointer-events-none absolute -left-3 top-1.5 z-[2] h-full md:hidden"
-            >
+            <div class="pointer-events-none absolute -left-3 top-1.5 z-[2] h-full md:hidden">
               <span
                 class="font-display text-[150px] font-medium italic leading-[.78] tracking-[.01em] text-cream [text-shadow:0_0_60px_rgba(0,0,0,.2)] [writing-mode:vertical-rl]"
                 >red rose</span
               >
             </div>
-            <!-- mobile: utility text at the seam -->
-            <div
-              class="absolute right-5 top-[430px] z-[2] -translate-y-1/2 md:hidden"
-            >
+            <div class="absolute right-5 top-[430px] z-[2] -translate-y-1/2 md:hidden">
               <span
                 class="text-[10px] font-medium tracking-[.32em] text-cream [writing-mode:vertical-rl]"
                 >INK ——— BEAUTY</span
               >
             </div>
             <div class="absolute right-[52px] top-[394px] z-[2] md:hidden">
-              <span
-                class="text-[9.5px] tracking-[.28em] text-cream [writing-mode:vertical-rl]"
+              <span class="text-[9.5px] tracking-[.28em] text-cream [writing-mode:vertical-rl]"
                 >NEWCASTLE, UK</span
               >
             </div>
 
-            <!-- desktop: seam utility text + tagline -->
             <div
               class="absolute right-1/2 top-[36%] z-[2] hidden flex-col items-end gap-2 pr-[26px] md:flex"
             >
-              <span
-                class="whitespace-nowrap text-[11px] font-medium tracking-[.3em] text-cream"
+              <span class="whitespace-nowrap text-[11px] font-medium tracking-[.3em] text-cream"
                 >INK ——— BEAUTY</span
               >
-              <span
-                class="whitespace-nowrap text-[10.5px] tracking-[.28em] text-cream"
+              <span class="whitespace-nowrap text-[10.5px] tracking-[.28em] text-cream"
                 >NEWCASTLE, UK</span
               >
             </div>
             <div class="absolute left-9 top-8 z-[2] hidden md:block">
-              <p
-                class="m-0 text-[11px] font-medium tracking-[.3em] text-cream/85"
-              >
+              <p class="m-0 text-[11px] font-medium tracking-[.3em] text-cream/85">
                 LORENA · SEMI-PERMANENT MAKEUP
               </p>
             </div>
 
-            <!-- desktop: giant wordmark breaking the seam -->
             <div
               class="pointer-events-none absolute inset-x-0 bottom-[-58px] z-[3] hidden text-center md:block"
             >
@@ -276,131 +171,100 @@ app.get("/", async (c) => {
             ${solidBtn("/book", "Book now", "min-h-[60px] whitespace-nowrap px-12 text-[14px]")}
           </div>
 
-          <!-- ============ 01 lashes + 02 freckles ============ -->
-          <div class="grid md:grid-cols-2">
-            <section id="lashes" class="border-b border-crimson/30 md:border-b-0 md:border-r">
-              <div class="h-[420px] overflow-hidden md:h-[520px]">
-                <img
-                  src="/img/lashes@2x.webp"
-                  alt="Lash extensions and lifts"
-                  class="block h-full w-full object-cover object-[center_30%] md:object-[center_46%]"
-                />
-              </div>
-              <div class="border-t-0 px-[22px] pb-9 pt-[26px] md:border-t md:border-crimson/30 md:px-9 md:pb-11 md:pt-8">
-                ${sectionBody(
-                  meta("lashes"),
-                  bySection.get("lashes") ?? [],
-                  outlineBtn(bookHref("lashes"), "Book lashes", "mt-5 md:mt-6")
-                )}
-              </div>
-            </section>
-            <section id="freckles" class="border-b border-crimson/30 md:border-b-0">
-              <div class="h-[420px] overflow-hidden md:h-[520px]">
-                <img
-                  src="/img/freckles@2x.webp"
-                  alt="Faux freckles"
-                  class="block h-full w-full object-cover object-[center_24%] md:object-[center_20%]"
-                />
-              </div>
-              <div class="px-[22px] pb-9 pt-[26px] md:border-t md:border-crimson/30 md:px-9 md:pb-11 md:pt-8">
-                ${sectionBody(
-                  meta("freckles"),
-                  bySection.get("freckles") ?? [],
-                  outlineBtn(bookHref("freckles"), "Book freckles", "mt-5 md:mt-6")
-                )}
-              </div>
-            </section>
-          </div>
-
-          <!-- ============ 03 brows: split editorial ============ -->
-          <section
-            id="brows"
-            class="grid border-b border-crimson/30 md:grid-cols-2 md:border-t md:border-b-0"
-          >
-            <div class="h-[420px] overflow-hidden md:h-[640px]">
-              <img
-                src="/img/brows@2x.webp"
-                alt="Ombré powder brows"
-                class="block h-full w-full object-cover object-[center_12%] md:object-[center_10%]"
-              />
-            </div>
-            <div
-              class="flex flex-col px-[22px] pb-9 pt-[26px] md:justify-center md:px-16 md:py-14"
-            >
-              ${sectionBody(
-                meta("brows"),
-                bySection.get("brows") ?? [],
-                solidBtn(bookHref("brows"), "Book brows", "mt-5 md:mt-[26px]")
-              )}
-            </div>
-          </section>
-
-          <!-- ============ 04 lips: split editorial, flipped ============ -->
-          <section id="lips" class="grid md:grid-cols-2 md:border-t md:border-crimson/30">
-            <div class="h-[420px] overflow-hidden md:order-2 md:h-[640px]">
-              <img
-                src="/img/lips@2x.webp"
-                alt="Lip blush"
-                class="block h-full w-full object-cover object-[center_40%] md:object-[center_42%]"
-              />
-            </div>
-            <div
-              class="flex flex-col px-[22px] pb-10 pt-[26px] md:order-1 md:justify-center md:px-16 md:py-14"
-            >
-              ${sectionBody(
-                meta("lips"),
-                bySection.get("lips") ?? [],
-                solidBtn(bookHref("lips"), "Book lips", "mt-5 md:mt-[26px]")
-              )}
-            </div>
-          </section>
-
-          <!-- ============ footer ============ -->
-          <footer class="bg-crimson px-[22px] pb-8 pt-9 text-cream md:px-16 md:pb-9 md:pt-12">
-            <div class="md:flex md:items-end md:justify-between md:gap-12">
-              <div>
-                <p class="font-display m-0 text-[26px] font-medium italic md:text-[40px]">
-                  red rose
-                </p>
-                <p class="m-0 mt-1 text-[10.5px] tracking-[.26em] text-cream/75 md:mt-1.5 md:text-[11px] md:tracking-[.28em]">
-                  INK —— BEAUTY · NEWCASTLE, UK
-                </p>
-              </div>
-              <a
-                href="${site.instagram}"
-                class="mt-[22px] inline-flex min-h-[44px] items-center text-[13px] font-medium tracking-[.18em] text-cream underline underline-offset-4 hover:opacity-75 md:mt-0"
-                >INSTAGRAM — ${site.instagramLabel} ↗</a
-              >
-            </div>
-            <div
-              class="mt-4 border-cream/25 md:mt-[30px] md:flex md:items-baseline md:justify-between md:gap-6 md:border-t md:pt-[18px]"
-            >
-              <p class="m-0 max-w-[760px] text-[13px] leading-[1.6] text-cream/80 [text-wrap:pretty]">
-                ${site.bookingNotice} ${site.cancellationPolicy}
-              </p>
-              <div
-                class="mt-[22px] flex items-baseline justify-between gap-3 border-t border-cream/25 pt-4 text-[11.5px] text-cream/70 md:mt-0 md:justify-start md:gap-7 md:whitespace-nowrap md:border-t-0 md:pt-0"
-              >
-                <span>© 2026 ${site.businessName}</span>
+          <!-- ============ treatments menu ============ -->
+          <div class="border-b border-crimson/30 px-[22px] py-9 md:px-16 md:py-14">
+            <p class="${utilityCaps} m-0 mb-1">TREATMENTS</p>
+            <h2 class="font-display m-0 mb-2 text-[26px] font-medium italic text-ink md:text-[30px]">
+              What would you like done?
+            </h2>
+            ${sections.map(
+              (meta) => html`
                 <a
-                  href="/privacy"
-                  class="inline-flex min-h-[44px] items-center tracking-[.12em] text-cream/70 underline underline-offset-[3px] hover:text-cream"
-                  >PRIVACY</a
+                  href="/treatments#${meta.key}"
+                  class="group flex items-baseline justify-between gap-4 border-b border-crimson/30 py-4 no-underline md:py-5"
                 >
-              </div>
-            </div>
-          </footer>
-
-          <!-- ============ fixed mobile booking bar ============ -->
-          <div
-            class="fixed bottom-0 left-0 right-0 z-40 flex items-stretch border-t border-cream/15 bg-ink md:hidden"
-          >
-            <div class="flex flex-1 flex-col justify-center px-4 py-2.5">
-              <span class="font-display text-[15px] italic text-cream">red rose</span>
-              <span class="text-[9.5px] tracking-[.22em] text-cream/60">NEWCASTLE, UK</span>
-            </div>
-            ${solidBtn("/book", "Book now", "min-h-[60px] min-w-[150px]")}
+                  <span class="flex items-baseline gap-3 md:gap-5">
+                    <span class="${utilityCaps}">${meta.number}</span>
+                    <span
+                      class="font-display text-[22px] font-medium italic text-ink group-hover:text-crimson md:text-[28px]"
+                      >${meta.title}</span
+                    >
+                  </span>
+                  <span
+                    class="whitespace-nowrap text-[13px] tracking-[.06em] text-ink/60 uppercase group-hover:text-crimson"
+                    >from ${fromPrice(meta.key)} →</span
+                  >
+                </a>
+              `
+            )}
           </div>
+
+          <!-- ============ freckles + lips cards ============ -->
+          <div class="grid md:grid-cols-2">
+            <div class="md:border-r md:border-crimson/30">
+              ${card("freckles", "object-[center_24%] md:object-[center_20%]")}
+            </div>
+            <div>${card("lips", "object-[center_40%] md:object-[center_42%]")}</div>
+          </div>
+
+          <!-- ============ reviews ============ -->
+          <div class="border-t border-crimson/30 px-[22px] py-9 md:px-16 md:py-14">
+            <p class="${utilityCaps} m-0 mb-1">KIND WORDS</p>
+            <h2 class="font-display m-0 mb-6 text-[26px] font-medium italic text-ink md:text-[30px]">
+              What clients say
+            </h2>
+            <div class="grid gap-5 md:grid-cols-3 md:gap-8">
+              ${site.reviews.map(
+                (r) => html`
+                  <figure class="m-0 border-l-2 border-crimson/40 pl-4 md:pl-5">
+                    <blockquote
+                      class="font-display m-0 text-[17px] italic leading-[1.5] text-ink/85 md:text-[18px]"
+                    >
+                      “${r.quote}”
+                    </blockquote>
+                    <figcaption class="mt-3 text-[12px] tracking-[.12em] text-ink/60 uppercase">
+                      ${r.name} · <span class="text-teal">${r.source}</span>
+                    </figcaption>
+                  </figure>
+                `
+              )}
+            </div>
+          </div>
+
+          <!-- ============ mini bio ============ -->
+          <div class="grid border-t border-crimson/30 md:grid-cols-2">
+            <div class="h-[380px] overflow-hidden bg-crimson/10 md:h-auto">
+              ${site.lorenaPhoto
+                ? html`<img
+                    src="${site.lorenaPhoto}"
+                    alt="Lorena — Red Rose Ink & Beauty"
+                    class="block h-full w-full object-cover"
+                  />`
+                : html`<div class="flex h-full min-h-[380px] items-center justify-center">
+                    <img
+                      src="/redrose_logo.svg"
+                      alt=""
+                      class="w-44 opacity-30 md:w-56"
+                    />
+                  </div>`}
+            </div>
+            <div class="flex flex-col justify-center px-[22px] py-9 md:px-16 md:py-14">
+              <p class="${utilityCaps} m-0 mb-1">YOUR ARTIST</p>
+              <h2 class="font-display m-0 mb-3 text-[26px] font-medium italic text-ink md:text-[30px]">
+                Meet Lorena
+              </h2>
+              <p class="m-0 text-[15px] leading-[1.7] text-ink/75 md:text-[16px]">
+                ${site.bioIntro}
+              </p>
+              <a
+                href="/about"
+                class="mt-5 inline-flex min-h-[44px] items-center text-[13px] font-semibold uppercase tracking-[.2em] text-crimson underline underline-offset-4 hover:text-crimson-deep"
+                >About Lorena →</a
+              >
+            </div>
+          </div>
+
+          ${brochureFooter()} ${fixedBookBar()}
         </div>
       `
     )

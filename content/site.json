@@ -9,22 +9,22 @@
   "cancellationPolicy": "Cancel at least 48 hours before your appointment for a full deposit refund. Within 48 hours the deposit is non-refundable, but message Lorena and she'll do her best to rearrange.",
   "sections": [
     {
-      "key": "lashes",
+      "key": "brows",
       "number": "01",
+      "title": "Ombré powder brows",
+      "blurb": "Includes consultation & patch test."
+    },
+    {
+      "key": "lashes",
+      "number": "02",
       "title": "Lash extensions & lifts",
       "blurb": ""
     },
     {
       "key": "freckles",
-      "number": "02",
+      "number": "03",
       "title": "Faux freckles",
       "blurb": "Natural scattered freckles, tattooed softly."
-    },
-    {
-      "key": "brows",
-      "number": "03",
-      "title": "Ombré powder brows",
-      "blurb": "Includes consultation & patch test."
     },
     {
       "key": "lips",
@@ -32,5 +32,29 @@
       "title": "Lip blush",
       "blurb": "Semi-permanent lip colour and definition."
     }
+  ],
+  "reviews": [
+    {
+      "quote": "PLACEHOLDER — review text to be sourced by Kate from Lorena's existing platforms.",
+      "name": "Client name",
+      "source": "PLATFORM"
+    },
+    {
+      "quote": "PLACEHOLDER — a second review goes here; swap for Google reviews once Lorena's Google Business profile is live.",
+      "name": "Client name",
+      "source": "PLATFORM"
+    },
+    {
+      "quote": "PLACEHOLDER — a third review. Keep them short — two sentences reads best in this layout.",
+      "name": "Client name",
+      "source": "PLATFORM"
+    }
+  ],
+  "bioIntro": "PLACEHOLDER — two or three warm sentences about Lorena: her training, how long she's been doing SPMU, and why clients trust her. Text TBC.",
+  "lorenaPhoto": "",
+  "aboutBody": [
+    "PLACEHOLDER — opening paragraph about Lorena's story: how she came to cosmetic tattooing, her qualifications and training.",
+    "PLACEHOLDER — second paragraph: her approach — natural results, consultation-first, patch tests, aftercare support.",
+    "PLACEHOLDER — third paragraph: something personal and warm. Text TBC with Lorena."
   ]
 }
