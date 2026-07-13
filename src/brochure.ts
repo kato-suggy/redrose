@@ -41,18 +41,36 @@ export const priceRow = (s: BrochureServiceRow) => html`
 
 /**
  * "Red Rose" spine overlaid inside an image container (clips with it):
- * vertical along the bottom-left edge, quiet — a plate mark, not a shout.
- * The narrow gradient keeps cream legible on pale imagery.
+ * vertical, flush against the edge, bottom-anchored.
+ * - tone "cream": for tinted/dark imagery; brings a narrow edge scrim.
+ * - tone "crimson": for the b&w images — brand red straight on the grey.
+ * - side "right" flips the reading direction (bottom → top).
  */
-export const imageWordmark = () => html`
-  <div
-    class="pointer-events-none absolute inset-y-0 left-0 z-[1] w-24 bg-gradient-to-r from-ink/30 to-transparent"
-  ></div>
-  <span
-    class="font-display pointer-events-none absolute bottom-3 left-2.5 z-[2] whitespace-nowrap text-[40px] italic leading-none tracking-[.02em] text-cream/80 [text-shadow:0_0_24px_rgba(0,0,0,.35)] [writing-mode:vertical-rl] md:text-[48px]"
-    >Red Rose</span
-  >
-`;
+export const imageWordmark = (
+  opts: { tone?: "cream" | "crimson"; side?: "left" | "right" } = {}
+) => {
+  const tone = opts.tone ?? "cream";
+  const side = opts.side ?? "left";
+  const colour =
+    tone === "cream"
+      ? "text-cream/85 [text-shadow:0_0_24px_rgba(0,0,0,.35)]"
+      : "text-crimson/90";
+  const place =
+    side === "left"
+      ? "-left-1 [writing-mode:vertical-rl]"
+      : "-right-1 rotate-180 [writing-mode:vertical-rl]";
+  return html`
+    ${tone === "cream"
+      ? html`<div
+          class="pointer-events-none absolute inset-y-0 left-0 z-[1] w-28 bg-gradient-to-r from-ink/30 to-transparent"
+        ></div>`
+      : ""}
+    <span
+      class="font-display pointer-events-none absolute bottom-2 z-[2] whitespace-nowrap text-[64px] italic leading-none tracking-[.02em] md:text-[88px] ${colour} ${place}"
+      >Red Rose</span
+    >
+  `;
+};
 
 export const solidBtn = (href: string, label: string, extra = "") => html`
   <a

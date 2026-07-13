@@ -41,7 +41,13 @@ app.get("/", async (c) => {
   /** One treatment card: image (wordmark inside), caption + CTA below. */
   const card = (
     key: Section,
-    opts: { imgClass: string; tint?: boolean; heroImg?: boolean; alt: string }
+    opts: {
+      imgClass: string;
+      tint?: boolean;
+      heroImg?: boolean;
+      alt: string;
+      wordmark?: Parameters<typeof imageWordmark>[0];
+    }
   ) => {
     const meta = sections.find((s) => s.key === key)!;
     return html`
@@ -57,7 +63,7 @@ app.get("/", async (c) => {
           ${opts.tint
             ? html`<div class="absolute inset-0 bg-crimson/60 mix-blend-multiply"></div>`
             : ""}
-          ${imageWordmark()}
+          ${imageWordmark(opts.wordmark)}
         </a>
         <div class="px-[22px] pb-9 pt-[26px] md:border-t md:border-crimson/30 md:px-9 md:pb-11 md:pt-8">
           <p class="${utilityCaps} m-0 mb-1">${meta.number} — ${key.toUpperCase()}</p>
@@ -100,6 +106,7 @@ app.get("/", async (c) => {
                 imgClass: "object-[center_26%] md:object-[center_20%]",
                 heroImg: true,
                 alt: "Lashes — cosmetic tattoo portrait",
+                wordmark: { tone: "crimson" },
               })}
             </div>
           </div>
@@ -140,12 +147,14 @@ app.get("/", async (c) => {
               ${card("freckles", {
                 imgClass: "object-[center_24%] md:object-[center_20%]",
                 alt: "Faux freckles",
+                wordmark: { tone: "crimson", side: "right" },
               })}
             </div>
             <div>
               ${card("lips", {
                 imgClass: "object-[center_40%] md:object-[center_42%]",
                 alt: "Lip blush",
+                wordmark: { tone: "crimson", side: "right" },
               })}
             </div>
           </div>
