@@ -7,8 +7,13 @@
  * because an email bounced.
  */
 
-import { formatPence, type Result, Ok, Err } from "../types";
-import { EMAIL_FROM, NOTIFY_EMAIL, CANCEL_CUTOFF_HOURS } from "../config";
+import { formatPence, type Pence, type Result, Ok, Err } from "../types";
+import {
+  EMAIL_FROM,
+  NOTIFY_EMAIL,
+  FULL_REFUND_CUTOFF_HOURS,
+  HALF_REFUND_CUTOFF_HOURS,
+} from "../config";
 import { formatLondon } from "./time";
 import type { BookingDetail } from "./db";
 import site from "../../content/site.json";
@@ -57,8 +62,7 @@ export async function sendConfirmationEmails(
       <hr>
       <p><strong>Need to cancel or rearrange?</strong><br>
          ${escapeHtml(site.cancellationPolicy)}</p>
-      <p><a href="${cancelUrl}">Cancel this booking</a>
-         (free with more than ${CANCEL_CUTOFF_HOURS} hours' notice)</p>
+      <p><a href="${cancelUrl}">Cancel this booking</a></p>
     `,
   });
 
@@ -82,13 +86,28 @@ export async function sendConfirmationEmails(
   }
 }
 
-/** Send both cancellation emails (client refund notice + Lorena heads-up). */
+/**
+ * Send both cancellation emails (client refund notice + Lorena heads-up).
+ * `refundPence` is what was actually refunded: the full deposit, half of it
+ * (24–48 h notice), or 0 (kept).
+ */
 export async function sendCancellationEmails(
   apiKey: string,
   b: BookingDetail,
-  refunded: boolean
+  refundPence: Pence
 ): Promise<void> {
   const when = formatLondon(b.slotStartsAt);
+
+  const refundLine =
+    refundPence >= b.depositPence
+      ? `<p>Your ${formatPence(b.depositPence)} deposit has been refunded in full —
+         it should reach your account within 5–10 working days.</p>`
+      : refundPence > 0
+        ? `<p>As this was within ${FULL_REFUND_CUTOFF_HOURS} hours of the appointment,
+           half your deposit (${formatPence(refundPence)}) has been refunded —
+           it should reach your account within 5–10 working days.</p>`
+        : `<p>As this was within ${HALF_REFUND_CUTOFF_HOURS} hours of the appointment,
+           the deposit is non-refundable.</p>`;
 
   const client = send(apiKey, {
     to: b.clientEmail,
@@ -98,16 +117,17 @@ export async function sendCancellationEmails(
       <p>Hi ${escapeHtml(b.clientName)},</p>
       <p>Your <strong>${escapeHtml(b.serviceName)}</strong> appointment on
          <strong>${when}</strong> has been cancelled.</p>
-      ${
-        refunded
-          ? `<p>Your ${formatPence(b.depositPence)} deposit has been refunded —
-             it should reach your account within 5–10 working days.</p>`
-          : `<p>As this was within ${CANCEL_CUTOFF_HOURS} hours of the appointment,
-             the deposit is non-refundable.</p>`
-      }
+      ${refundLine}
       <p>We'd love to see you another time — book again any time.</p>
     `,
   });
+
+  const depositNote =
+    refundPence >= b.depositPence
+      ? "refunded in full"
+      : refundPence > 0
+        ? `half refunded (${formatPence(refundPence)})`
+        : "kept (late cancellation)";
 
   const lorena = send(apiKey, {
     to: NOTIFY_EMAIL,
@@ -118,7 +138,7 @@ export async function sendCancellationEmails(
          — the slot is open again.</p>
       <ul>
         <li>Client: ${escapeHtml(b.clientName)} (${escapeHtml(b.clientEmail)})</li>
-        <li>Deposit ${formatPence(b.depositPence)}: ${refunded ? "refunded" : "kept (late cancellation)"}</li>
+        <li>Deposit ${formatPence(b.depositPence)}: ${depositNote}</li>
       </ul>
     `,
   });

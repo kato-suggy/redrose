@@ -87,14 +87,16 @@ export async function verifyWebhook(
   }
 }
 
-/** Full refund of the deposit's payment intent. */
+/** Refund the deposit's payment intent — fully, or partially via `amount`. */
 export async function refundDeposit(
   stripe: Stripe,
-  paymentIntent: string
+  paymentIntent: string,
+  amount?: Pence
 ): Promise<Result<{ refundId: string }>> {
   try {
     const refund = await stripe.refunds.create({
       payment_intent: paymentIntent,
+      ...(amount !== undefined ? { amount } : {}),
     });
     return Ok({ refundId: refund.id });
   } catch (e) {

@@ -94,9 +94,12 @@ Notes
    - **≥ 48 h before the slot:** page shows the booking + a cancel button → full deposit refund
      via Stripe's refund API → status `cancelled` → slot frees automatically (the unique index
      only counts live statuses) → emails to client and Lorena.
-   - **< 48 h:** non-refundable notice + Lorena's contact details for rearranging.
-   - Cutoff is a config constant (`CANCEL_CUTOFF_HOURS = 48`). Policy text appears on the
-     checkout page and in the confirmation email. Reschedule in v1 = cancel + rebook.
+   - **24–48 h:** cancel button with half-refund notice → partial Stripe refund (half the
+     deposit, rounded to the penny).
+   - **< 24 h:** non-refundable notice + Lorena's contact details for rearranging.
+   - Cutoffs are config constants (`FULL_REFUND_CUTOFF_HOURS = 48`,
+     `HALF_REFUND_CUTOFF_HOURS = 24`). Policy text appears on the checkout page and in the
+     confirmation email. Reschedule in v1 = cancel + rebook.
 
 Stripe on Workers (npm `stripe` — the SDK, not the CLI):
 ```ts

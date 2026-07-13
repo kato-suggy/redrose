@@ -380,6 +380,28 @@ export async function listUpcomingBookings(
   return results.map(toDetail);
 }
 
+/**
+ * Undo a cancellation whose refund failed (cancelled → confirmed). Returns
+ * false if the slot was re-booked in the gap (the partial unique index
+ * rejects the update) — the caller must flag that for manual fixing.
+ */
+export async function reinstateBooking(
+  db: D1Database,
+  bookingId: string
+): Promise<boolean> {
+  try {
+    const res = await db
+      .prepare(
+        "UPDATE bookings SET status = 'confirmed' WHERE id = ? AND status = 'cancelled'"
+      )
+      .bind(bookingId)
+      .run();
+    return res.meta.changes === 1;
+  } catch {
+    return false;
+  }
+}
+
 export async function getBookingByToken(
   db: D1Database,
   token: string

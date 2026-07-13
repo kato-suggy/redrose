@@ -9,8 +9,11 @@ import { html } from "hono/html";
 import type Stripe from "stripe";
 import type { Bindings } from "../env";
 import { layout } from "../layout";
-import { formatPence, pence } from "../types";
-import { CANCEL_CUTOFF_HOURS } from "../config";
+import { formatPence, pence, type Pence } from "../types";
+import {
+  FULL_REFUND_CUTOFF_HOURS,
+  HALF_REFUND_CUTOFF_HOURS,
+} from "../config";
 import {
   formatLondon,
   formatLondonDay,
@@ -29,6 +32,7 @@ import {
   getOpenSlot,
   holdSlot,
   listOpenSlots,
+  reinstateBooking,
   releaseHold,
   type BookingDetail,
   type SlotRow,
@@ -502,8 +506,18 @@ app.get("/booking/cancelled", (c) =>
 );
 
 // ---------- self-serve cancellation ----------
-function refundable(b: BookingDetail): boolean {
-  return b.slotStartsAt - nowEpoch() >= CANCEL_CUTOFF_HOURS * 3600;
+// Lorena's policy: ≥48h notice → full deposit back; 24–48h → half; <24h → none.
+type RefundTier = { kind: "full" | "half"; refund: Pence } | { kind: "none" };
+
+function refundTier(b: BookingDetail): RefundTier {
+  const hoursAhead = (b.slotStartsAt - nowEpoch()) / 3600;
+  if (hoursAhead >= FULL_REFUND_CUTOFF_HOURS) {
+    return { kind: "full", refund: b.depositPence };
+  }
+  if (hoursAhead >= HALF_REFUND_CUTOFF_HOURS) {
+    return { kind: "half", refund: pence(Math.round(b.depositPence / 2)) };
+  }
+  return { kind: "none" };
 }
 
 const cancelPage = (title: string, body: unknown) =>
@@ -546,12 +560,14 @@ app.get("/booking/cancel/:token", async (c) => {
   }
 
   const when = formatLondon(booking.slotStartsAt);
-  if (!refundable(booking)) {
+  const tier = refundTier(booking);
+
+  if (tier.kind === "none") {
     return c.html(
       cancelPage(
         "Cancellation",
         html`<h1 class="font-display text-3xl font-bold text-crimson">
-            Within ${CANCEL_CUTOFF_HOURS} hours of your appointment
+            Within ${HALF_REFUND_CUTOFF_HOURS} hours of your appointment
           </h1>
           <p class="mt-4">
             <strong>${booking.serviceName}</strong> on <strong>${when}</strong>.
@@ -576,16 +592,23 @@ app.get("/booking/cancel/:token", async (c) => {
           <strong>${booking.serviceName}</strong> on <strong>${when}</strong> —
           deposit ${formatPence(booking.depositPence)}.
         </p>
-        <p class="mt-4">
-          You're more than ${CANCEL_CUTOFF_HOURS} hours ahead, so your deposit
-          will be refunded in full.
-        </p>
+        ${tier.kind === "full"
+          ? html`<p class="mt-4">
+              You're more than ${FULL_REFUND_CUTOFF_HOURS} hours ahead, so your
+              deposit will be refunded in full.
+            </p>`
+          : html`<p class="mt-4">
+              It's less than ${FULL_REFUND_CUTOFF_HOURS} hours before your
+              appointment, so half your deposit
+              (${formatPence(tier.refund)}) will be refunded.
+            </p>`}
         <form method="post" class="mt-8">
+          <input type="hidden" name="tier" value="${tier.kind}" />
           <button
             type="submit"
             class="rounded bg-crimson px-6 py-3 font-medium text-cream"
           >
-            Cancel booking &amp; refund my deposit
+            Cancel booking &amp; refund ${formatPence(tier.refund)}
           </button>
         </form>`
     )
@@ -594,9 +617,18 @@ app.get("/booking/cancel/:token", async (c) => {
 
 app.post("/booking/cancel/:token", async (c) => {
   const booking = await getBookingByToken(c.env.DB, c.req.param("token"));
-  if (!booking || booking.status !== "confirmed" || !refundable(booking)) {
-    // State changed since the GET (double submit, or the 48h line crossed
-    // while the page was open) — re-render the current truth.
+  const tier = booking ? refundTier(booking) : { kind: "none" as const };
+  if (!booking || booking.status !== "confirmed" || tier.kind === "none") {
+    // State changed since the GET (double submit, or a cutoff crossed while
+    // the page was open) — re-render the current truth.
+    return c.redirect(`/booking/cancel/${c.req.param("token")}`, 303);
+  }
+
+  // The page promised a specific tier; if the clock has since crossed a
+  // cutoff, bounce back so the client confirms the new amount, rather than
+  // silently refunding less than they were shown.
+  const body = await c.req.parseBody();
+  if (String(body["tier"] ?? "") !== tier.kind) {
     return c.redirect(`/booking/cancel/${c.req.param("token")}`, 303);
   }
 
@@ -618,12 +650,36 @@ app.post("/booking/cancel/:token", async (c) => {
     );
   }
 
-  // Refund first: Stripe rejects a duplicate full refund, so a race between
-  // two submits can't pay out twice. Only then flip the status.
+  // Flip the status first: the guarded UPDATE means exactly one submit wins,
+  // so a double-click can't trigger two half-refunds (Stripe only dedupes
+  // duplicate FULL refunds). If the refund then fails, reinstate.
+  const cancelled = await cancelBooking(c.env.DB, booking.id);
+  if (!cancelled) {
+    return c.redirect(`/booking/cancel/${c.req.param("token")}`, 303);
+  }
+
   const stripe = stripeClient(c.env.STRIPE_SECRET_KEY);
-  const refund = await refundDeposit(stripe, booking.stripePaymentIntent);
+  const refund = await refundDeposit(
+    stripe,
+    booking.stripePaymentIntent,
+    tier.kind === "full" ? undefined : tier.refund
+  );
   if (!refund.ok) {
     console.error("refund failed:", refund.error);
+    const reinstated = await reinstateBooking(c.env.DB, booking.id);
+    if (!reinstated) {
+      // cancelled but not refunded and the slot may be gone — needs a human
+      c.executionCtx.waitUntil(
+        sendOpsNotice(
+          c.env.RESEND_API_KEY,
+          "Cancellation needs attention",
+          `<p>Booking <code>${booking.id}</code> (${booking.clientName},
+           ${booking.serviceName}) was cancelled but the
+           ${formatPence(tier.refund)} refund FAILED and the booking could
+           not be reinstated. Refund manually in the Stripe dashboard.</p>`
+        )
+      );
+    }
     return c.html(
       cancelPage(
         "Something went wrong",
@@ -640,9 +696,8 @@ app.post("/booking/cancel/:token", async (c) => {
     );
   }
 
-  await cancelBooking(c.env.DB, booking.id);
   c.executionCtx.waitUntil(
-    sendCancellationEmails(c.env.RESEND_API_KEY, booking, true)
+    sendCancellationEmails(c.env.RESEND_API_KEY, booking, tier.refund)
   );
 
   return c.html(
@@ -652,8 +707,12 @@ app.post("/booking/cancel/:token", async (c) => {
           Booking cancelled
         </h1>
         <p class="mt-4">
-          Your ${formatPence(booking.depositPence)} deposit has been refunded —
-          it should reach your account within 5–10 working days.
+          ${tier.kind === "full"
+            ? html`Your ${formatPence(booking.depositPence)} deposit has been
+              refunded in full`
+            : html`Half your deposit (${formatPence(tier.refund)}) has been
+              refunded`}
+          — it should reach your account within 5–10 working days.
         </p>
         <p class="mt-4">We'd love to see you another time.</p>`
     )

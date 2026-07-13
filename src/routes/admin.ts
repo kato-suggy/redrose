@@ -197,7 +197,8 @@ app.post("/appointments/:id/cancel", async (c) => {
 
   await cancelBooking(c.env.DB, booking.id);
   c.executionCtx.waitUntil(
-    sendCancellationEmails(c.env.RESEND_API_KEY, booking, true)
+    // Admin cancellations always refund the full deposit — Lorena's call.
+    sendCancellationEmails(c.env.RESEND_API_KEY, booking, booking.depositPence)
   );
   return c.redirect("/admin?msg=cancelled", 303);
 });

@@ -4,7 +4,10 @@
 export const HOLD_MINUTES = 30;
 
 /** Full deposit refund if cancelling at least this many hours before the slot. */
-export const CANCEL_CUTOFF_HOURS = 48;
+export const FULL_REFUND_CUTOFF_HOURS = 48;
+
+/** Half the deposit back between the full cutoff and this many hours before. */
+export const HALF_REFUND_CUTOFF_HOURS = 24;
 
 /**
  * Email sender/recipients. Dev: Resend's onboarding address only delivers to

@@ -6,7 +6,7 @@
   "instagramLabel": "@REDROSE.INKNBEAUTY",
   "salonAddress": "PLACEHOLDER — salon address TBC",
   "bookingNotice": "A deposit secures your appointment; the balance is paid at the salon.",
-  "cancellationPolicy": "Cancel at least 48 hours before your appointment for a full deposit refund. Within 48 hours the deposit is non-refundable, but message Lorena and she'll do her best to rearrange.",
+  "cancellationPolicy": "Cancel at least 48 hours before your appointment for a full deposit refund, or between 48 and 24 hours before for a half refund. Within 24 hours the deposit is non-refundable, but message Lorena and she'll do her best to rearrange.",
   "sections": [
     {
       "key": "brows",

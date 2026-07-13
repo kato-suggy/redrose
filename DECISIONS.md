@@ -32,9 +32,10 @@ _Living log of locked decisions and open questions. Last updated: 9 July 2026._
 - **Deposit = 20% of the service price**, stored per-service (`deposit_pence`, seeded at 20%,
   overridable per service later). Balance paid in person. Charge upfront — no auth-holds.
 - **Pending-payment hold: 30 minutes** (matches Stripe Checkout's minimum session expiry). Confirmed.
-- **Cancellation policy (Lorena's):** cancel **≥ 48 hours** before the appointment → full deposit
-  refund; **< 48 hours** → deposit forfeited. v1 implementation: self-serve cancel link
-  (unguessable token) in the confirmation email; refund via Stripe API; reschedule = cancel +
+- **Cancellation policy (Lorena's, amended 11 Jul 2026):** cancel **≥ 48 hours** before the
+  appointment → full deposit refund; **24–48 hours** → half the deposit refunded; **< 24
+  hours** → deposit forfeited. v1 implementation: self-serve cancel link (unguessable token)
+  in the confirmation email; full/partial refund via Stripe API; reschedule = cancel +
   rebook. Policy displayed at checkout and in emails.
 - Apple/Google Pay come free with Stripe Checkout. Klarna ruled out. Twilio SMS post-launch.
 - **Resend** for transactional email — reusing Kate's existing account (new API key for this
