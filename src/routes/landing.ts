@@ -106,7 +106,7 @@ app.get("/", async (c) => {
                 imgClass: "object-[center_26%] md:object-[center_20%]",
                 heroImg: true,
                 alt: "Lashes — cosmetic tattoo portrait",
-                wordmark: { tone: "crimson" },
+                wordmark: { tone: "crimson", anchor: "top" },
               })}
             </div>
           </div>
@@ -147,7 +147,7 @@ app.get("/", async (c) => {
               ${card("freckles", {
                 imgClass: "object-[center_24%] md:object-[center_20%]",
                 alt: "Faux freckles",
-                wordmark: { tone: "crimson", side: "right" },
+                wordmark: { tone: "crimson", side: "right", size: "sm" },
               })}
             </div>
             <div>

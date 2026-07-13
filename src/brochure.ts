@@ -47,7 +47,12 @@ export const priceRow = (s: BrochureServiceRow) => html`
  * - side "right" flips the reading direction (bottom → top).
  */
 export const imageWordmark = (
-  opts: { tone?: "cream" | "crimson"; side?: "left" | "right" } = {}
+  opts: {
+    tone?: "cream" | "crimson";
+    side?: "left" | "right";
+    anchor?: "top" | "bottom"; // top: for imagery whose lower edge is busy/dark
+    size?: "md" | "sm"; // sm: stays 64px on desktop, for tighter crops
+  } = {}
 ) => {
   const tone = opts.tone ?? "cream";
   const side = opts.side ?? "left";
@@ -59,6 +64,11 @@ export const imageWordmark = (
     side === "left"
       ? "-left-1 [writing-mode:vertical-rl]"
       : "-right-1 rotate-180 [writing-mode:vertical-rl]";
+  const anchor = (opts.anchor ?? "bottom") === "bottom" ? "bottom-2" : "top-2";
+  const size =
+    (opts.size ?? "md") === "md"
+      ? "text-[64px] md:text-[88px]"
+      : "text-[64px] md:text-[64px]";
   return html`
     ${tone === "cream"
       ? html`<div
@@ -66,7 +76,7 @@ export const imageWordmark = (
         ></div>`
       : ""}
     <span
-      class="font-display pointer-events-none absolute bottom-2 z-[2] whitespace-nowrap text-[64px] italic leading-none tracking-[.02em] md:text-[88px] ${colour} ${place}"
+      class="font-display pointer-events-none absolute z-[2] whitespace-nowrap italic leading-none tracking-[.02em] ${size} ${colour} ${place} ${anchor}"
       >Red Rose</span
     >
   `;
