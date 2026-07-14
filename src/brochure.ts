@@ -69,10 +69,14 @@ export const imageWordmark = (
     (opts.size ?? "md") === "md"
       ? "text-[64px] md:text-[88px]"
       : "text-[64px] md:text-[64px]";
+  const scrim =
+    side === "left"
+      ? "left-0 bg-gradient-to-r"
+      : "right-0 bg-gradient-to-l";
   return html`
     ${tone === "cream"
       ? html`<div
-          class="pointer-events-none absolute inset-y-0 left-0 z-[1] w-28 bg-gradient-to-r from-ink/30 to-transparent"
+          class="pointer-events-none absolute inset-y-0 z-[1] w-28 from-ink/30 to-transparent ${scrim}"
         ></div>`
       : ""}
     <span

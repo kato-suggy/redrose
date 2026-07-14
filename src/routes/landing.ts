@@ -153,8 +153,9 @@ app.get("/", async (c) => {
             <div>
               ${card("lips", {
                 imgClass: "object-[center_40%] md:object-[center_42%]",
+                tint: true,
                 alt: "Lip blush",
-                wordmark: { tone: "crimson", side: "right" },
+                wordmark: { tone: "cream", side: "right" },
               })}
             </div>
           </div>
