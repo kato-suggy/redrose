@@ -49,13 +49,15 @@ export interface BookingDetail {
   slotEndsAt: number;
   serviceName: string;
   serviceSection: string;
+  servicePricePence: Pence;
 }
 
 const DETAIL_SELECT = `
   SELECT b.id, b.status, b.client_name, b.client_email, b.client_phone,
          b.deposit_pence, b.cancel_token, b.stripe_session_id, b.stripe_payment_intent,
          s.id AS slot_id, s.starts_at, s.ends_at,
-         sv.name AS service_name, sv.section AS service_section
+         sv.name AS service_name, sv.section AS service_section,
+         sv.price_pence AS service_price
   FROM bookings b
   JOIN slots s ON s.id = b.slot_id
   JOIN services sv ON sv.id = b.service_id
@@ -76,6 +78,7 @@ interface DetailRow {
   ends_at: number;
   service_name: string;
   service_section: string;
+  service_price: number;
 }
 
 function toDetail(r: DetailRow): BookingDetail {
@@ -94,6 +97,7 @@ function toDetail(r: DetailRow): BookingDetail {
     slotEndsAt: r.ends_at,
     serviceName: r.service_name,
     serviceSection: r.service_section,
+    servicePricePence: pence(r.service_price),
   };
 }
 

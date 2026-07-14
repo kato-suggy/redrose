@@ -111,6 +111,74 @@ const FORM_ERRORS: Record<string, { title: string; body: string }> = {
   },
 };
 
+// ---------- booking-flow chrome (Booking Slot Picker / Outcomes .dc) ----------
+// Every page in the flow: centred column, Red Rose top bar, slim footer.
+
+const bookingShell = (title: string, inner: unknown) =>
+  layout(
+    title,
+    html`
+      <div class="mx-auto flex min-h-screen w-full max-w-[420px] flex-col">
+        <header
+          class="flex items-baseline justify-between border-b border-crimson px-5 pb-3.5 pt-[18px]"
+        >
+          <a
+            href="/"
+            class="font-display text-[18px] font-semibold italic text-crimson no-underline"
+            >Red Rose</a
+          >
+          <span class="text-[10px] uppercase tracking-[.22em] text-ink"
+            >Ink &amp; Beauty · Newcastle</span
+          >
+        </header>
+        <main class="flex flex-1 flex-col px-5 pb-10 pt-7">${inner}</main>
+        <footer class="flex items-baseline justify-between border-t border-crimson p-5">
+          <span class="text-[10px] uppercase tracking-[.2em] text-ink/60"
+            >© 2026 ${site.businessName}</span
+          >
+          <a href="/privacy" class="text-[10px] uppercase tracking-[.2em] text-teal underline"
+            >Privacy</a
+          >
+        </footer>
+      </div>
+    `
+  );
+
+const bkKicker = (text: string, tone: "teal" | "crimson" = "teal") => html`
+  <span
+    class="text-[11px] font-medium uppercase tracking-[.24em] ${tone === "teal"
+      ? "text-teal"
+      : "text-crimson"}"
+    >${text}</span
+  >
+`;
+
+const bkH1 = (text: string) => html`
+  <h1 class="font-display m-0 mt-2.5 text-[34px] font-medium italic leading-[1.15] text-ink">
+    ${text}
+  </h1>
+`;
+
+const bkSolidLink = (href: string, label: string, extra = "") => html`
+  <a
+    href="${href}"
+    class="flex min-h-[58px] items-center justify-center bg-crimson text-[13px] font-semibold uppercase tracking-[.2em] text-cream no-underline transition-colors hover:bg-crimson-deep ${extra}"
+    >${label}</a
+  >
+`;
+
+const bkOutlineLink = (href: string, label: string, extra = "") => html`
+  <a
+    href="${href}"
+    class="flex min-h-[54px] items-center justify-center border-[1.5px] border-crimson text-[12px] font-semibold uppercase tracking-[.2em] text-crimson no-underline transition-colors hover:bg-crimson hover:text-cream ${extra}"
+    >${label}</a
+  >
+`;
+
+/** "Friday 24 July, 10:00 – 12:00" */
+const bkWhen = (b: BookingDetail) =>
+  `${formatLondonDay(b.slotStartsAt)}, ${formatLondonTime(b.slotStartsAt)} – ${formatLondonTime(b.slotEndsAt)}`;
+
 app.get("/book/:serviceId", async (c) => {
   const serviceId = Number(c.req.param("serviceId"));
   const service = Number.isInteger(serviceId)
@@ -157,23 +225,9 @@ app.get("/book/:serviceId", async (c) => {
     "text-[11px] font-semibold uppercase tracking-[.2em] text-ink";
 
   return c.html(
-    layout(
+    bookingShell(
       `Book ${service.name}`,
       html`
-        <div class="mx-auto flex min-h-screen w-full max-w-[420px] flex-col">
-          <!-- top bar (Booking Slot Picker.dc) -->
-          <header
-            class="flex items-baseline justify-between border-b border-crimson px-5 pb-3.5 pt-[18px]"
-          >
-            <a href="/" class="font-display text-[18px] font-semibold italic text-crimson no-underline"
-              >Red Rose</a
-            >
-            <span class="text-[10px] uppercase tracking-[.22em] text-ink"
-              >Ink &amp; Beauty · Newcastle</span
-            >
-          </header>
-
-          <main class="flex flex-1 flex-col px-5 pb-10 pt-6">
             <a
               href="/treatments"
               class="text-[11px] font-medium uppercase tracking-[.2em] text-teal no-underline hover:text-crimson"
@@ -359,21 +413,6 @@ app.get("/book/:serviceId", async (c) => {
                   </script>
                 `
               : ""}
-          </main>
-
-          <footer
-            class="flex items-baseline justify-between border-t border-crimson p-5"
-          >
-            <span class="text-[10px] uppercase tracking-[.2em] text-ink/60"
-              >© 2026 ${site.businessName}</span
-            >
-            <a
-              href="/privacy"
-              class="text-[10px] uppercase tracking-[.2em] text-teal underline"
-              >Privacy</a
-            >
-          </footer>
-        </div>
       `
     )
   );
@@ -439,6 +478,7 @@ app.post("/book", async (c) => {
   const stripe = stripeClient(c.env.STRIPE_SECRET_KEY);
   const session = await createCheckoutSession(stripe, {
     bookingId: hold.value.bookingId,
+    serviceId: service.id,
     serviceName: service.name,
     depositPence: pence(service.deposit_pence),
     clientEmail: email,
@@ -565,7 +605,10 @@ async function resolveLatePayment(
   );
 }
 
-// ---------- outcome pages ----------
+// ---------- outcome pages (Booking Outcomes.dc.html) ----------
+
+const summaryLabel = "text-[10px] font-medium uppercase tracking-[.22em] text-teal";
+
 app.get("/booking/success", async (c) => {
   const sessionId = c.req.query("session_id");
   const booking = sessionId
@@ -573,50 +616,86 @@ app.get("/booking/success", async (c) => {
     : null;
 
   return c.html(
-    layout(
+    bookingShell(
       "Booking confirmed",
       html`
-        <main class="mx-auto max-w-2xl px-6 py-16">
-          <h1 class="font-display text-3xl font-bold text-crimson">
-            Thank you — payment received
-          </h1>
-          ${booking
-            ? html`
-                <p class="mt-4">
-                  <strong>${booking.serviceName}</strong> on
-                  <strong>${formatLondon(booking.slotStartsAt)}</strong> —
-                  deposit of ${formatPence(booking.depositPence)} paid.
+        ${bkKicker("Booking confirmed")} ${bkH1("You’re booked in.")}
+        <p class="m-0 mt-3.5 text-[15px] leading-[1.6] text-ink/80">
+          Your confirmation email is on its way — it has everything below,
+          plus how to find the salon.
+        </p>
+
+        ${booking
+          ? html`
+              <div
+                class="mt-[26px] flex flex-col gap-3.5 border-y border-crimson py-5"
+              >
+                <div class="flex flex-col gap-1">
+                  <span class="${summaryLabel}">Treatment</span>
+                  <span class="font-display text-[20px] italic text-ink"
+                    >${booking.serviceName}</span
+                  >
+                </div>
+                <div class="flex flex-col gap-1">
+                  <span class="${summaryLabel}">When</span>
+                  <span class="text-[15px] text-ink">${bkWhen(booking)}</span>
+                </div>
+                <div class="flex flex-col gap-1">
+                  <span class="${summaryLabel}">Paid today</span>
+                  <span class="text-[15px] text-ink">
+                    <span class="font-semibold text-crimson"
+                      >${formatPence(booking.depositPence)} deposit</span
+                    >
+                    ·
+                    ${formatPence(
+                      pence(booking.servicePricePence - booking.depositPence)
+                    )}
+                    at the salon
+                  </span>
+                </div>
+              </div>
+            `
+          : html`
+              <div class="mt-[26px] border-y border-crimson py-5">
+                <p class="m-0 text-[15px] leading-[1.6] text-ink/80">
+                  Payment received — your booking is being confirmed right now.
                 </p>
-              `
-            : html`<p class="mt-4">Your booking is being confirmed.</p>`}
-          <p class="mt-4">
-            A confirmation email is on its way with all the details and a
-            cancellation link.
-          </p>
-        </main>
+              </div>
+            `}
+
+        <p class="m-0 mt-5 text-[13px] leading-[1.6] text-ink/75">
+          Need to change it? Cancel at least ${FULL_REFUND_CUTOFF_HOURS} hours
+          before for a full deposit refund — the link is in your email.
+        </p>
+
+        ${bkOutlineLink("/", "Back to home", "mt-[26px]")}
       `
     )
   );
 });
 
-app.get("/booking/cancelled", (c) =>
-  c.html(
-    layout(
-      "Checkout cancelled",
+app.get("/booking/cancelled", (c) => {
+  const serviceId = Number(c.req.query("service"));
+  const again = Number.isInteger(serviceId) && serviceId > 0
+    ? `/book/${serviceId}`
+    : "/treatments";
+  return c.html(
+    bookingShell(
+      "Payment not completed",
       html`
-        <main class="mx-auto max-w-2xl px-6 py-16">
-          <h1 class="font-display text-3xl font-bold text-crimson">
-            Checkout cancelled
-          </h1>
-          <p class="mt-4">
-            No payment was taken and the slot has not been booked. It's held
-            for a short while, so if you change your mind, just book again.
-          </p>
-        </main>
+        ${bkKicker("Payment not completed", "crimson")}
+        ${bkH1("Nothing was charged.")}
+        <p class="m-0 mt-3.5 text-[15px] leading-[1.6] text-ink/80">
+          You left checkout before paying, so your appointment isn&rsquo;t
+          booked. The time you chose is open again — if you still want it, it
+          may go quickly.
+        </p>
+        ${bkSolidLink(again, "Pick a time again", "mt-[30px]")}
+        ${bkOutlineLink("/treatments", "All treatments", "mt-3.5")}
       `
     )
-  )
-);
+  );
+});
 
 // ---------- self-serve cancellation ----------
 // Lorena's policy: ≥48h notice → full deposit back; 24–48h → half; <24h → none.
@@ -633,25 +712,31 @@ function refundTier(b: BookingDetail): RefundTier {
   return { kind: "none" };
 }
 
-const cancelPage = (title: string, body: unknown) =>
-  layout(
-    title,
-    html`<main class="mx-auto max-w-2xl px-6 py-16">${body}</main>`
-  );
+/** Booking summary block shared by the cancellation states. */
+const cancelSummary = (b: BookingDetail) => html`
+  <div class="mt-6 flex flex-col gap-1.5 border-y border-crimson py-[18px]">
+    <span class="font-display text-[20px] italic text-ink">${b.serviceName}</span>
+    <span class="text-[14px] text-ink/80">${bkWhen(b)}</span>
+    <span class="text-[12px] uppercase tracking-[.16em] text-ink"
+      >${formatPence(b.depositPence)} deposit paid</span
+    >
+  </div>
+`;
 
 app.get("/booking/cancel/:token", async (c) => {
   const booking = await getBookingByToken(c.env.DB, c.req.param("token"));
   if (!booking) {
     return c.html(
-      cancelPage(
+      bookingShell(
         "Booking not found",
-        html`<h1 class="font-display text-3xl font-bold text-crimson">
-            Booking not found
-          </h1>
-          <p class="mt-4">
-            That link doesn't match a booking. If you think this is a mistake,
-            reply to your confirmation email.
-          </p>`
+        html`
+          ${bkKicker("Your booking", "crimson")} ${bkH1("Booking not found.")}
+          <p class="m-0 mt-3.5 text-[15px] leading-[1.6] text-ink/80">
+            That link doesn&rsquo;t match a booking. If you think this is a
+            mistake, reply to your confirmation email.
+          </p>
+          ${bkOutlineLink("/", "Back to home", "mt-[30px]")}
+        `
       ),
       404
     );
@@ -659,71 +744,94 @@ app.get("/booking/cancel/:token", async (c) => {
 
   if (booking.status !== "confirmed") {
     return c.html(
-      cancelPage(
-        "Booking already closed",
-        html`<h1 class="font-display text-3xl font-bold text-crimson">
-            Nothing to cancel
-          </h1>
-          <p class="mt-4">
+      bookingShell(
+        "Nothing to cancel",
+        html`
+          ${bkKicker("Your booking")} ${bkH1("Nothing to cancel.")}
+          <p class="m-0 mt-3.5 text-[15px] leading-[1.6] text-ink/80">
             This booking is no longer active
             (status: ${booking.status.replace("_", " ")}).
-          </p>`
+          </p>
+          ${bkOutlineLink("/treatments", "Book an appointment", "mt-[30px]")}
+        `
       )
     );
   }
 
-  const when = formatLondon(booking.slotStartsAt);
   const tier = refundTier(booking);
 
   if (tier.kind === "none") {
     return c.html(
-      cancelPage(
-        "Cancellation",
-        html`<h1 class="font-display text-3xl font-bold text-crimson">
-            Within ${HALF_REFUND_CUTOFF_HOURS} hours of your appointment
-          </h1>
-          <p class="mt-4">
-            <strong>${booking.serviceName}</strong> on <strong>${when}</strong>.
+      bookingShell(
+        "Your booking",
+        html`
+          ${bkKicker("Your booking")} ${bkH1("Cancel this appointment?")}
+          ${cancelSummary(booking)}
+          <p class="m-0 mt-[22px] text-[15px] leading-[1.6] text-ink/80">
+            Your appointment is less than ${HALF_REFUND_CUTOFF_HOURS} hours
+            away, so
+            <strong class="font-semibold text-ink"
+              >the deposit can&rsquo;t be refunded online</strong
+            >
+            and it can&rsquo;t be cancelled here.
           </p>
-          <p class="mt-4">${site.cancellationPolicy}</p>
-          <p class="mt-4">
-            Message Lorena on
-            <a class="text-teal underline" href="${site.instagram}">Instagram</a>
-            and she'll do her best to rearrange.
-          </p>`
+          <div
+            class="mt-6 flex flex-col items-center gap-3 border border-crimson/35 px-5 py-6 text-center"
+          >
+            <p class="font-display m-0 text-[18px] italic leading-[1.45] text-ink">
+              Life happens — message Lorena.
+            </p>
+            <p class="m-0 text-[14px] leading-[1.55] text-ink/75">
+              She&rsquo;ll do her best to rearrange your appointment instead.
+            </p>
+            <a
+              href="${site.instagram}"
+              class="inline-flex min-h-[48px] items-center justify-center border-[1.5px] border-crimson px-6 text-[12px] font-semibold uppercase tracking-[.2em] text-crimson no-underline transition-colors hover:bg-crimson hover:text-cream"
+              >Message Lorena</a
+            >
+          </div>
+        `
       )
     );
   }
 
   return c.html(
-    cancelPage(
+    bookingShell(
       "Cancel booking",
-      html`<h1 class="font-display text-3xl font-bold text-crimson">
-          Cancel this booking?
-        </h1>
-        <p class="mt-4">
-          <strong>${booking.serviceName}</strong> on <strong>${when}</strong> —
-          deposit ${formatPence(booking.depositPence)}.
-        </p>
+      html`
+        ${bkKicker("Your booking")} ${bkH1("Cancel this appointment?")}
+        ${cancelSummary(booking)}
         ${tier.kind === "full"
-          ? html`<p class="mt-4">
-              You're more than ${FULL_REFUND_CUTOFF_HOURS} hours ahead, so your
-              deposit will be refunded in full.
+          ? html`<p class="m-0 mt-[22px] text-[15px] leading-[1.6] text-ink/80">
+              Your appointment is more than ${FULL_REFUND_CUTOFF_HOURS} hours
+              away, so your
+              <strong class="font-semibold text-ink"
+                >${formatPence(tier.refund)} deposit is refunded in full</strong
+              >. It usually arrives back on your card within 5 working days.
             </p>`
-          : html`<p class="mt-4">
-              It's less than ${FULL_REFUND_CUTOFF_HOURS} hours before your
-              appointment, so half your deposit
-              (${formatPence(tier.refund)}) will be refunded.
+          : html`<p class="m-0 mt-[22px] text-[15px] leading-[1.6] text-ink/80">
+              Your appointment is less than ${FULL_REFUND_CUTOFF_HOURS} hours
+              away, so
+              <strong class="font-semibold text-ink"
+                >half your deposit — ${formatPence(tier.refund)} — is
+                refunded</strong
+              >. It usually arrives back on your card within 5 working days.
             </p>`}
-        <form method="post" class="mt-8">
+        <form method="post" class="m-0 mt-7 flex flex-col">
           <input type="hidden" name="tier" value="${tier.kind}" />
           <button
             type="submit"
-            class="rounded bg-crimson px-6 py-3 font-medium text-cream"
+            class="min-h-[58px] cursor-pointer border-0 bg-crimson text-[13px] font-semibold uppercase tracking-[.2em] text-cream transition-colors hover:bg-crimson-deep"
           >
-            Cancel booking &amp; refund ${formatPence(tier.refund)}
+            Cancel &amp; refund ${formatPence(tier.refund)}
           </button>
-        </form>`
+        </form>
+        <a
+          href="/"
+          class="mt-[18px] self-center text-[12px] font-medium uppercase tracking-[.18em] text-teal no-underline hover:text-crimson"
+          >Keep my appointment</a
+        >
+      `
     )
   );
 });
@@ -748,16 +856,17 @@ app.post("/booking/cancel/:token", async (c) => {
   if (!booking.stripePaymentIntent) {
     console.error(`booking ${booking.id} confirmed without a payment intent`);
     return c.html(
-      cancelPage(
+      bookingShell(
         "Something went wrong",
-        html`<h1 class="font-display text-3xl font-bold text-crimson">
-            We couldn't process the refund
-          </h1>
-          <p class="mt-4">
+        html`
+          ${bkKicker("Your booking", "crimson")}
+          ${bkH1("We couldn’t process the refund.")}
+          <p class="m-0 mt-3.5 text-[15px] leading-[1.6] text-ink/80">
             Please message Lorena on
             <a class="text-teal underline" href="${site.instagram}">Instagram</a>
-            and she'll sort it out.
-          </p>`
+            and she&rsquo;ll sort it out.
+          </p>
+        `
       ),
       500
     );
@@ -794,16 +903,19 @@ app.post("/booking/cancel/:token", async (c) => {
       );
     }
     return c.html(
-      cancelPage(
+      bookingShell(
         "Something went wrong",
-        html`<h1 class="font-display text-3xl font-bold text-crimson">
-            We couldn't process the refund
-          </h1>
-          <p class="mt-4">
-            Your booking has <strong>not</strong> been cancelled. Please try
-            again in a few minutes, or message Lorena on
+        html`
+          ${bkKicker("Your booking", "crimson")}
+          ${bkH1("We couldn’t process the refund.")}
+          <p class="m-0 mt-3.5 text-[15px] leading-[1.6] text-ink/80">
+            Your booking has
+            <strong class="font-semibold text-ink">not</strong> been cancelled.
+            Please try again in a few minutes, or message Lorena on
             <a class="text-teal underline" href="${site.instagram}">Instagram</a>.
-          </p>`
+          </p>
+          ${bkOutlineLink(`/booking/cancel/${booking.cancelToken}`, "Try again", "mt-[30px]")}
+        `
       ),
       502
     );
@@ -814,20 +926,29 @@ app.post("/booking/cancel/:token", async (c) => {
   );
 
   return c.html(
-    cancelPage(
+    bookingShell(
       "Booking cancelled",
-      html`<h1 class="font-display text-3xl font-bold text-crimson">
-          Booking cancelled
-        </h1>
-        <p class="mt-4">
+      html`
+        ${bkKicker("Your booking")} ${bkH1("Appointment cancelled.")}
+        ${cancelSummary(booking)}
+        <p class="m-0 mt-[22px] text-[15px] leading-[1.6] text-ink/80">
           ${tier.kind === "full"
-            ? html`Your ${formatPence(booking.depositPence)} deposit has been
-              refunded in full`
-            : html`Half your deposit (${formatPence(tier.refund)}) has been
-              refunded`}
-          — it should reach your account within 5–10 working days.
+            ? html`Your
+                <strong class="font-semibold text-ink"
+                  >${formatPence(booking.depositPence)} deposit has been
+                  refunded in full</strong
+                >.`
+            : html`<strong class="font-semibold text-ink"
+                  >Half your deposit — ${formatPence(tier.refund)} — has been
+                  refunded</strong
+                >.`}
+          It usually arrives back on your card within 5 working days.
         </p>
-        <p class="mt-4">We'd love to see you another time.</p>`
+        <p class="m-0 mt-3 text-[15px] leading-[1.6] text-ink/80">
+          We&rsquo;d love to see you another time.
+        </p>
+        ${bkOutlineLink("/treatments", "Book another time", "mt-[30px]")}
+      `
     )
   );
 });

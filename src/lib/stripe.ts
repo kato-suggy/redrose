@@ -15,6 +15,7 @@ export function stripeClient(secretKey: string): Stripe {
 
 export interface CheckoutRequest {
   bookingId: string;
+  serviceId: number; // lets the cancelled page link back to this picker
   serviceName: string;
   depositPence: Pence;
   clientEmail: string;
@@ -49,7 +50,7 @@ export async function createCheckoutSession(
       // (exactly HOLD_MINUTES) never outlives the session.
       expires_at: Math.floor(Date.now() / 1000) + HOLD_MINUTES * 60 + 60,
       success_url: `${req.origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.origin}/booking/cancelled`,
+      cancel_url: `${req.origin}/booking/cancelled?service=${req.serviceId}`,
     });
     if (!session.url) {
       return Err({ kind: "stripe", detail: "session created without a URL" });
