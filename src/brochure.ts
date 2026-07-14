@@ -104,7 +104,7 @@ export const outlineBtn = (href: string, label: string, extra = "") => html`
 export const brochureNav = () => html`
   <header>
     <div class="flex items-center justify-between gap-2.5 px-[18px] py-2.5 md:hidden">
-      <span class="text-[9.5px] font-medium tracking-[.2em] text-ink">INK —— BEAUTY</span>
+      <span class="text-[9.5px] font-medium tracking-[.2em] text-ink">INK & BEAUTY</span>
       <a href="/" class="no-underline">
         <img src="/redrose_logo.svg" alt="${site.businessName}" class="block h-[60px] w-auto" />
       </a>
@@ -129,15 +129,15 @@ export const brochureFooter = () => html`
   <footer class="bg-crimson px-[22px] pb-8 pt-9 text-cream md:px-16 md:pb-9 md:pt-12">
     <div class="md:flex md:items-end md:justify-between md:gap-12">
       <div>
-        <p class="font-display m-0 text-[26px] font-medium italic md:text-[40px]">red rose</p>
+        <p class="font-display m-0 text-[26px] font-medium italic md:text-[40px]">Red Rose</p>
         <p class="m-0 mt-1 text-[10.5px] tracking-[.26em] text-cream/75 md:mt-1.5 md:text-[11px] md:tracking-[.28em]">
-          INK —— BEAUTY · NEWCASTLE, UK
+          INK & BEAUTY · NEWCASTLE, UK
         </p>
       </div>
       <a
         href="${site.instagram}"
-        class="mt-[22px] inline-flex min-h-[44px] items-center text-[13px] font-medium tracking-[.18em] text-cream underline underline-offset-4 hover:opacity-75 md:mt-0"
-        >INSTAGRAM — ${site.instagramLabel} ↗</a
+        class="mt-[22px] inline-flex min-h-[44px] items-center text-[13px] font-medium tracking-[.18em] text-cream hover:opacity-75 md:mt-0"
+        >instagram — ${site.instagramLabel}</a
       >
     </div>
     <div

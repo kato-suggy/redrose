@@ -147,7 +147,7 @@ app.get("/", async (c) => {
               ${card("freckles", {
                 imgClass: "object-[center_24%] md:object-[center_20%]",
                 alt: "Faux freckles",
-                wordmark: { tone: "crimson", side: "right", size: "sm" },
+                wordmark: { tone: "crimson", anchor: "top", side: "right" },
               })}
             </div>
             <div>
@@ -207,7 +207,7 @@ app.get("/", async (c) => {
               <a
                 href="/about"
                 class="mt-5 inline-flex min-h-[44px] items-center text-[13px] font-semibold uppercase tracking-[.2em] text-crimson underline underline-offset-4 hover:text-crimson-deep"
-                >About Lorena →</a
+                >About Lorena</a
               >
             </div>
           </div>
