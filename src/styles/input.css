@@ -11,6 +11,7 @@
   --color-teal: #2a6f77;
   --color-ink: #1b1614;
   --color-cream: #f6f1e8;
+  --color-paper: #fdfbf7; /* form fields + time chips (Booking Slot Picker.dc) */
 
   --font-display: "Playfair Display", Georgia, serif;
   --font-body: "Jost", system-ui, sans-serif;

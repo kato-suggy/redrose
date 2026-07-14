@@ -88,14 +88,27 @@ app.get("/book", (c) => c.redirect("/treatments", 301));
 
 const BOOKING_WINDOW_DAYS = 42;
 
-const FORM_ERRORS: Record<string, string> = {
-  slot_taken:
-    "Sorry — that time was booked while you were choosing. Please pick another.",
-  unavailable: "That time is no longer available — please pick another.",
-  invalid: "Please choose a time and fill in your name and email.",
-  payment:
-    "The payment system is having a moment — nothing was charged. Please try again.",
-  oops: "Something went wrong at our end — please try again.",
+const FORM_ERRORS: Record<string, { title: string; body: string }> = {
+  slot_taken: {
+    title: "That time was just taken",
+    body: "Someone booked it moments before you. The times below are still open.",
+  },
+  unavailable: {
+    title: "That time is no longer available",
+    body: "Please pick another from the times below.",
+  },
+  invalid: {
+    title: "Something was missing",
+    body: "Please choose a time and fill in your name and email.",
+  },
+  payment: {
+    title: "The payment system is having a moment",
+    body: "Nothing was charged. Please try again.",
+  },
+  oops: {
+    title: "Something went wrong at our end",
+    body: "Please try again.",
+  },
 };
 
 app.get("/book/:serviceId", async (c) => {
@@ -130,138 +143,237 @@ app.get("/book/:serviceId", async (c) => {
     else days.set(key, [s]);
   }
 
-  const errorMsg = FORM_ERRORS[c.req.query("error") ?? ""];
+  const error = FORM_ERRORS[c.req.query("error") ?? ""];
   const prefill = {
     name: c.req.query("name") ?? "",
     email: c.req.query("email") ?? "",
     phone: c.req.query("phone") ?? "",
   };
   const deposit = formatPence(pence(service.deposit_pence));
+  const sectionMeta = site.sections.find((m) => m.key === service.section);
+  const inputClass =
+    "h-[52px] rounded-none border border-ink/30 bg-paper px-3.5 font-body text-[16px] text-ink outline-teal";
+  const fieldLabel =
+    "text-[11px] font-semibold uppercase tracking-[.2em] text-ink";
 
   return c.html(
     layout(
       `Book ${service.name}`,
       html`
-        <main class="mx-auto max-w-2xl px-6 py-10">
-          <a class="text-sm text-teal underline" href="/">&larr; All treatments</a>
-          <h1 class="mt-4 font-display text-3xl font-bold text-crimson">
-            ${service.name}
-          </h1>
-          <p class="mt-2 text-sm opacity-80">
-            ${service.duration_mins} mins ·
-            ${formatPence(pence(service.price_pence))} · ${deposit} deposit to book
-          </p>
+        <div class="mx-auto flex min-h-screen w-full max-w-[420px] flex-col">
+          <!-- top bar (Booking Slot Picker.dc) -->
+          <header
+            class="flex items-baseline justify-between border-b border-crimson px-5 pb-3.5 pt-[18px]"
+          >
+            <a href="/" class="font-display text-[18px] font-semibold italic text-crimson no-underline"
+              >Red Rose</a
+            >
+            <span class="text-[10px] uppercase tracking-[.22em] text-ink"
+              >Ink &amp; Beauty · Newcastle</span
+            >
+          </header>
 
-          ${errorMsg
-            ? html`<p
-                class="mt-6 rounded border border-crimson/40 bg-crimson/10 px-4 py-3 text-crimson"
-                role="alert"
+          <main class="flex flex-1 flex-col px-5 pb-10 pt-6">
+            <a
+              href="/treatments"
+              class="text-[11px] font-medium uppercase tracking-[.2em] text-teal no-underline hover:text-crimson"
+              >&larr; All treatments</a
+            >
+
+            <!-- service header -->
+            <div class="mt-[22px] flex flex-col gap-2">
+              ${sectionMeta
+                ? html`<span class="text-[11px] font-medium uppercase tracking-[.24em] text-teal"
+                    >${sectionMeta.number} — ${service.section}</span
+                  >`
+                : ""}
+              <h1
+                class="font-display m-0 text-[34px] font-medium italic leading-[1.1] text-ink"
               >
-                ${errorMsg}
-              </p>`
-            : ""}
-          ${days.size === 0
-            ? html`
-                <p class="mt-10">
-                  No appointments are open right now — new times are added
-                  regularly, so please check back soon or message Lorena on
-                  <a class="text-teal underline" href="${site.instagram}">Instagram</a>.
-                </p>
-              `
-            : html`
-                <form method="post" action="/book" class="mt-8">
-                  <input type="hidden" name="service_id" value="${service.id}" />
+                ${service.name}
+              </h1>
+              <p class="m-0 mt-0.5 text-[12px] uppercase tracking-[.18em] text-ink">
+                ${service.duration_mins} mins ·
+                <span class="font-semibold text-crimson"
+                  >${formatPence(pence(service.price_pence))}</span
+                >
+                · ${deposit} deposit
+              </p>
+            </div>
 
-                  <h2 class="font-display text-xl text-ink">Pick a time</h2>
-                  ${[...days.entries()].map(
-                    ([day, daySlots]) => html`
-                      <fieldset class="mt-5">
-                        <legend class="font-medium">${day}</legend>
-                        <div class="mt-2 flex flex-wrap gap-2">
-                          ${daySlots.map(
-                            (s) => html`
-                              <label class="cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="slot_id"
-                                  value="${s.id}"
-                                  class="peer sr-only"
-                                  required
-                                />
-                                <span
-                                  class="inline-block rounded border border-teal/50 bg-white/60 px-4 py-2 peer-checked:border-crimson peer-checked:bg-crimson peer-checked:text-cream"
-                                >
-                                  ${formatLondonTime(s.starts_at)}&thinsp;–&thinsp;${formatLondonTime(s.ends_at)}
-                                </span>
-                              </label>
-                            `
-                          )}
-                        </div>
-                      </fieldset>
-                    `
-                  )}
+            <hr class="mb-0 mt-[26px] border-0 border-t border-crimson" />
 
-                  <h2 class="mt-10 font-display text-xl text-ink">Your details</h2>
-                  <div class="mt-4 space-y-4">
-                    <label class="block">
-                      <span class="text-sm">Name</span>
-                      <input
-                        name="name"
-                        required
-                        autocomplete="name"
-                        value="${prefill.name}"
-                        class="mt-1 w-full rounded border border-teal/50 bg-white px-3 py-2"
-                      />
-                    </label>
-                    <label class="block">
-                      <span class="text-sm">Email</span>
-                      <input
-                        name="email"
-                        type="email"
-                        required
-                        autocomplete="email"
-                        value="${prefill.email}"
-                        class="mt-1 w-full rounded border border-teal/50 bg-white px-3 py-2"
-                      />
-                    </label>
-                    <label class="block">
-                      <span class="text-sm">Phone <span class="opacity-60">(optional)</span></span>
-                      <input
-                        name="phone"
-                        type="tel"
-                        autocomplete="tel"
-                        value="${prefill.phone}"
-                        class="mt-1 w-full rounded border border-teal/50 bg-white px-3 py-2"
-                      />
-                    </label>
-                  </div>
-
-                  <p class="mt-6 text-sm opacity-80">${site.bookingNotice}</p>
-                  <p class="mt-2 text-sm opacity-80">${site.cancellationPolicy}</p>
-
-                  <button
-                    type="submit"
-                    class="mt-6 w-full rounded bg-crimson px-6 py-3 font-medium text-cream disabled:opacity-40"
+            ${error
+              ? html`<div
+                  role="alert"
+                  class="mt-[22px] flex flex-col gap-0.5 border-[1.5px] border-crimson bg-crimson/5 px-4 py-3.5"
+                >
+                  <span class="text-[11px] font-semibold uppercase tracking-[.2em] text-crimson"
+                    >${error.title}</span
                   >
-                    Continue to payment — ${deposit} deposit
-                  </button>
-                </form>
+                  <span class="text-[14px] leading-[1.5] text-ink">${error.body}</span>
+                </div>`
+              : ""}
 
-                <script>
-                  // Enhancement only: gate submit until a time is chosen.
-                  // Without JS the required radios + server checks still hold.
-                  {
-                    const form = document.querySelector("form");
-                    const btn = form.querySelector("button[type=submit]");
-                    const update = () => {
-                      btn.disabled = !form.querySelector("input[name=slot_id]:checked");
-                    };
-                    form.addEventListener("change", update);
-                    update();
-                  }
-                </script>
-              `}
-        </main>
+            <section class="mt-[26px]">
+              <h2 class="font-display m-0 text-[22px] font-medium italic text-ink">
+                Pick a time
+              </h2>
+
+              ${days.size === 0
+                ? html`
+                    <div
+                      class="mt-[18px] flex flex-col items-center gap-3.5 border border-crimson/35 px-[22px] py-7 text-center"
+                    >
+                      <p class="font-display m-0 text-[19px] italic leading-[1.4] text-ink">
+                        No appointments open right now.
+                      </p>
+                      <p class="m-0 text-[14px] leading-[1.55] text-ink/75">
+                        Lorena adds new times regularly. Message her on Instagram
+                        and she&rsquo;ll let you know when the diary opens.
+                      </p>
+                      <a
+                        href="${site.instagram}"
+                        class="inline-flex min-h-[48px] items-center justify-center border-[1.5px] border-crimson px-6 text-[12px] font-semibold uppercase tracking-[.2em] text-crimson no-underline transition-colors hover:bg-crimson hover:text-cream"
+                        >Message Lorena</a
+                      >
+                    </div>
+                  `
+                : html`
+                    <div class="mt-1.5 flex flex-col gap-[22px] pt-3" id="time-groups">
+                      ${[...days.entries()].map(
+                        ([day, daySlots]) => html`
+                          <fieldset class="m-0 flex flex-col gap-2.5 border-0 p-0">
+                            <legend
+                              class="m-0 p-0 text-[12px] font-semibold uppercase tracking-[.2em] text-ink"
+                            >
+                              ${day}
+                            </legend>
+                            <div class="flex flex-wrap gap-2.5">
+                              ${daySlots.map(
+                                (s) => html`
+                                  <label class="cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name="slot_id"
+                                      value="${s.id}"
+                                      form="booking-form"
+                                      class="peer sr-only"
+                                      required
+                                    />
+                                    <span
+                                      class="inline-flex min-h-[48px] items-center justify-center border-[1.5px] border-crimson/45 bg-paper px-5 text-[15px] tracking-[.04em] text-ink transition-colors peer-checked:border-crimson peer-checked:bg-crimson peer-checked:font-semibold peer-checked:text-cream"
+                                    >
+                                      ${formatLondonTime(s.starts_at)} –
+                                      ${formatLondonTime(s.ends_at)}
+                                    </span>
+                                  </label>
+                                `
+                              )}
+                            </div>
+                          </fieldset>
+                        `
+                      )}
+                    </div>
+                  `}
+            </section>
+
+            ${days.size > 0
+              ? html`
+                  <form method="post" action="/book" id="booking-form" class="mt-9 flex flex-col">
+                    <input type="hidden" name="service_id" value="${service.id}" />
+                    <h2 class="font-display m-0 text-[22px] font-medium italic text-ink">
+                      Your details
+                    </h2>
+
+                    <div class="mt-[18px] flex flex-col gap-[18px]">
+                      <label class="flex flex-col gap-[7px]">
+                        <span class="${fieldLabel}">Name</span>
+                        <input
+                          name="name"
+                          required
+                          autocomplete="name"
+                          value="${prefill.name}"
+                          class="${inputClass}"
+                        />
+                      </label>
+                      <label class="flex flex-col gap-[7px]">
+                        <span class="${fieldLabel}">Email</span>
+                        <input
+                          name="email"
+                          type="email"
+                          required
+                          autocomplete="email"
+                          value="${prefill.email}"
+                          class="${inputClass}"
+                        />
+                      </label>
+                      <label class="flex flex-col gap-[7px]">
+                        <span class="${fieldLabel}"
+                          >Phone
+                          <span class="font-normal normal-case tracking-[.05em] text-ink/50"
+                            >(optional)</span
+                          ></span
+                        >
+                        <input
+                          name="phone"
+                          type="tel"
+                          autocomplete="tel"
+                          value="${prefill.phone}"
+                          class="${inputClass}"
+                        />
+                      </label>
+                    </div>
+
+                    <div class="mt-[26px] flex flex-col gap-2.5">
+                      <p class="m-0 text-[13px] leading-[1.6] text-ink/75">
+                        ${site.bookingNotice}
+                      </p>
+                      <p class="m-0 text-[13px] leading-[1.6] text-ink/75">
+                        ${site.cancellationPolicy}
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      class="mt-[26px] min-h-[58px] cursor-pointer border-0 bg-crimson text-[13px] font-semibold uppercase tracking-[.2em] text-cream transition-colors hover:bg-crimson-deep disabled:opacity-40"
+                    >
+                      Continue to payment — ${deposit} deposit
+                    </button>
+                  </form>
+
+                  <script>
+                    // Enhancement only: gate submit until a time is chosen.
+                    // Without JS the required radios + server checks still hold.
+                    {
+                      const form = document.getElementById("booking-form");
+                      const btn = form.querySelector("button[type=submit]");
+                      const update = () => {
+                        btn.disabled = !document.querySelector(
+                          "input[name=slot_id]:checked"
+                        );
+                      };
+                      document.addEventListener("change", update);
+                      update();
+                    }
+                  </script>
+                `
+              : ""}
+          </main>
+
+          <footer
+            class="flex items-baseline justify-between border-t border-crimson p-5"
+          >
+            <span class="text-[10px] uppercase tracking-[.2em] text-ink/60"
+              >© 2026 ${site.businessName}</span
+            >
+            <a
+              href="/privacy"
+              class="text-[10px] uppercase tracking-[.2em] text-teal underline"
+              >Privacy</a
+            >
+          </footer>
+        </div>
       `
     )
   );
@@ -285,8 +397,9 @@ app.post("/book", async (c) => {
   // JSON callers get an error body; browsers bounce back to the picker with
   // a banner code and their typed details preserved.
   const fail = (code: keyof typeof FORM_ERRORS, status: 400 | 404 | 409 | 500 | 502) => {
-    if (isJson) return c.json({ error: FORM_ERRORS[code] }, status);
-    if (!Number.isInteger(serviceId)) return c.json({ error: FORM_ERRORS[code] }, status);
+    const err = FORM_ERRORS[code]!;
+    if (isJson) return c.json({ error: err.body, title: err.title }, status);
+    if (!Number.isInteger(serviceId)) return c.json({ error: err.body }, status);
     const back = new URLSearchParams({ error: code, name, email, phone });
     return c.redirect(`/book/${serviceId}?${back}`, 303);
   };
