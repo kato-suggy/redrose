@@ -1,6 +1,8 @@
 /**
- * /admin — Lorena's side. Basic auth, plain forms, POST→redirect→GET.
- * Phone-first and jargon-free: "appointments" and "times", not slots/bookings.
+ * /admin — Lorena's diary. Implements "Admin.dc.html" from Kate's Claude
+ * Design project: two-tab phone-first layout (Appointments / Times), paper
+ * cards, PRG banners with a dismiss ×. Basic auth, plain forms — all the
+ * M3 logic (refunds, validation, block guards) unchanged.
  */
 
 import { Hono } from "hono";
@@ -10,8 +12,7 @@ import type { Bindings } from "../env";
 import { layout } from "../layout";
 import { formatPence } from "../types";
 import {
-  formatLondon,
-  formatLondonDay,
+  formatLondonDayShort,
   formatLondonTime,
   londonToEpoch,
   nowEpoch,
@@ -40,10 +41,10 @@ app.use(
 // Banner messages, keyed by ?msg= on the redirect target.
 const MESSAGES: Record<string, { text: string; isError: boolean }> = {
   created: { text: "Time added ✓", isError: false },
-  blocked: { text: "Time blocked — clients can't book it now.", isError: false },
+  blocked: { text: "Time blocked — no one can book it ✓", isError: false },
   unblocked: { text: "Time reopened ✓", isError: false },
   cancelled: {
-    text: "Appointment cancelled and the deposit refunded. The client has been emailed.",
+    text: "Cancelled — the deposit has been refunded and the client emailed ✓",
     isError: false,
   },
   bad_time: { text: "Please pick a date, a start time and an end time.", isError: true },
@@ -63,121 +64,186 @@ const MESSAGES: Record<string, { text: string; isError: boolean }> = {
   },
 };
 
-const banner = (msgKey: string | undefined) => {
-  const msg = MESSAGES[msgKey ?? ""];
-  if (!msg) return "";
-  return html`<p
-    class="${msg.isError
-      ? "mt-6 rounded border border-crimson/40 bg-crimson/10 px-4 py-3 text-crimson"
-      : "mt-6 rounded border border-teal/40 bg-teal/10 px-4 py-3 text-teal"}"
-    role="${msg.isError ? "alert" : "status"}"
-  >
-    ${msg.text}
-  </p>`;
-};
+// ---------- chrome (Admin.dc.html) ----------
 
-const adminPage = (
+const badgeBase =
+  "whitespace-nowrap px-[9px] py-[5px] text-[10px] font-semibold uppercase tracking-[.18em]";
+const badge = (
+  label: string,
+  tone: "teal" | "crimson" | "muted" | "solid"
+) => html`
+  <span
+    class="${badgeBase} ${tone === "teal"
+      ? "border border-teal/50 text-teal"
+      : tone === "crimson"
+        ? "border border-crimson/50 text-crimson"
+        : tone === "muted"
+          ? "border border-ink/35 text-ink/60"
+          : "bg-crimson text-cream"}"
+    >${label}</span
+  >
+`;
+
+const adminShell = (
   title: string,
   active: "appointments" | "times",
+  msgKey: string | undefined,
   body: unknown
-) =>
-  layout(
+) => {
+  const msg = MESSAGES[msgKey ?? ""];
+  const here = active === "appointments" ? "/admin" : "/admin/times";
+  const tab = (href: string, label: string, on: boolean) => html`
+    <a
+      href="${href}"
+      class="flex min-h-[54px] items-center justify-center text-[12px] uppercase tracking-[.2em] no-underline ${on
+        ? "bg-crimson font-semibold text-cream"
+        : "font-medium text-crimson hover:bg-crimson/5"}"
+      >${label}</a
+    >
+  `;
+  return layout(
     title,
     html`
-      <main class="mx-auto max-w-2xl px-6 py-10">
-        <p class="text-sm opacity-60">Red Rose admin</p>
-        <nav class="mt-2 flex gap-3">
-          <a
-            href="/admin"
-            class="${active === "appointments"
-              ? "rounded bg-crimson px-4 py-2 font-medium text-cream"
-              : "rounded border border-teal/50 px-4 py-2 text-teal"}"
+      <div class="mx-auto flex min-h-screen w-full max-w-[420px] flex-col">
+        <header class="flex items-baseline justify-between px-5 pb-3.5 pt-[18px]">
+          <span class="font-display text-[18px] font-semibold italic text-crimson"
+            >Red Rose</span
           >
-            Appointments
-          </a>
-          <a
-            href="/admin/times"
-            class="${active === "times"
-              ? "rounded bg-crimson px-4 py-2 font-medium text-cream"
-              : "rounded border border-teal/50 px-4 py-2 text-teal"}"
+          <span class="text-[10px] uppercase tracking-[.22em] text-ink"
+            >Lorena&rsquo;s diary</span
           >
-            Times
-          </a>
+        </header>
+
+        <nav class="grid grid-cols-2 border-y border-crimson">
+          ${tab("/admin", "Appointments", active === "appointments")}
+          ${tab("/admin/times", "Times", active === "times")}
         </nav>
-        ${body}
-      </main>
+
+        ${msg
+          ? html`
+              <div
+                role="${msg.isError ? "alert" : "status"}"
+                class="flex items-center justify-between gap-2.5 border-b px-4 py-3 ${msg.isError
+                  ? "border-crimson bg-crimson/10 text-crimson"
+                  : "border-teal bg-teal/10 text-teal"}"
+              >
+                <span class="text-[13px] font-semibold tracking-[.06em]">${msg.text}</span>
+                <a
+                  href="${here}"
+                  aria-label="Dismiss"
+                  class="px-2 py-1 text-[16px] no-underline ${msg.isError
+                    ? "text-crimson"
+                    : "text-teal"}"
+                  >&times;</a
+                >
+              </div>
+            `
+          : ""}
+
+        <main class="flex flex-1 flex-col px-5 pb-10 pt-6">${body}</main>
+      </div>
     `
   );
+};
+
+const cardClass =
+  "flex flex-col border border-crimson/35 bg-paper";
+const capsLine = "text-[12px] font-semibold uppercase tracking-[.18em] text-ink";
+const contactChip =
+  "inline-flex min-h-[44px] items-center border border-teal/50 px-3.5 text-[13px] tracking-[.03em] text-teal no-underline";
 
 // ---------- appointments ----------
+
 app.get("/", async (c) => {
   const bookings = await listUpcomingBookings(c.env.DB, nowEpoch());
 
   return c.html(
-    adminPage(
+    adminShell(
       "Appointments",
       "appointments",
+      c.req.query("msg"),
       html`
-        ${banner(c.req.query("msg"))}
-        <h1 class="mt-6 font-display text-2xl font-bold text-crimson">
-          Upcoming appointments
+        <h1 class="font-display m-0 text-[28px] font-medium italic text-ink">
+          Coming up
         </h1>
+
         ${bookings.length === 0
-          ? html`<p class="mt-4 opacity-70">Nothing booked yet.</p>`
+          ? html`<p class="m-0 mt-4 text-[15px] text-ink/70">
+              Nothing booked yet — when someone books, it appears here.
+            </p>`
           : html`
-              <ul class="mt-4 space-y-3">
+              <div class="mt-[18px] flex flex-col gap-4">
                 ${bookings.map(
                   (b) => html`
-                    <li class="rounded border border-teal/30 bg-white/60 p-4">
-                      <p class="font-medium">${formatLondon(b.slotStartsAt)}</p>
-                      <p class="mt-1">${b.serviceName}</p>
-                      <p class="mt-1 text-sm">
-                        ${b.clientName} ·
-                        <a class="text-teal underline" href="mailto:${b.clientEmail}"
-                          >${b.clientEmail}</a
+                    <article class="${cardClass} gap-3 px-4 py-[18px]">
+                      <div class="flex flex-wrap items-baseline justify-between gap-2.5">
+                        <span class="${capsLine} whitespace-nowrap"
+                          >${formatLondonDayShort(b.slotStartsAt)} ·
+                          ${formatLondonTime(b.slotStartsAt)} –
+                          ${formatLondonTime(b.slotEndsAt)}</span
+                        >
+                        ${b.status === "confirmed"
+                          ? badge("Deposit paid", "teal")
+                          : badge("Paying now — not confirmed yet", "crimson")}
+                      </div>
+                      <div class="flex flex-col gap-[3px]">
+                        <span class="font-display text-[19px] italic text-ink"
+                          >${b.serviceName}</span
+                        >
+                        <span class="text-[15px] text-ink">${b.clientName}</span>
+                      </div>
+                      <div class="flex flex-wrap gap-2.5">
+                        <a href="mailto:${b.clientEmail}" class="${contactChip}"
+                          >✉︎ ${b.clientEmail}</a
                         >
                         ${b.clientPhone
-                          ? html` ·
-                              <a class="text-teal underline" href="tel:${b.clientPhone}"
-                                >${b.clientPhone}</a
-                              >`
+                          ? html`<a href="tel:${b.clientPhone}" class="${contactChip}"
+                              >✆ ${b.clientPhone}</a
+                            >`
                           : ""}
-                      </p>
-                      ${b.status === "pending_payment"
-                        ? html`<p class="mt-2 text-sm italic opacity-70">
-                            Paying now — not confirmed yet
-                          </p>`
-                        : html`
-                            <p class="mt-1 text-sm opacity-70">
-                              Deposit paid: ${formatPence(b.depositPence)}
-                            </p>
-                            <form
-                              method="post"
-                              action="/admin/appointments/${b.id}/cancel"
-                              class="mt-3"
-                              onsubmit="return confirm('Cancel this appointment and refund the deposit?')"
-                            >
-                              <button
-                                type="submit"
-                                class="rounded border border-crimson px-4 py-2 text-sm text-crimson"
+                      </div>
+                      ${b.status === "confirmed"
+                        ? html`
+                            <div class="flex flex-col gap-2.5 border-t border-ink/10 pt-3">
+                              <span class="text-[12px] uppercase tracking-[.16em] text-ink"
+                                >${formatPence(b.depositPence)} deposit paid</span
                               >
-                                Cancel &amp; refund deposit
-                              </button>
-                            </form>
+                              <form
+                                method="post"
+                                action="/admin/appointments/${b.id}/cancel"
+                                class="m-0"
+                                onsubmit="return confirm('Cancel this appointment and refund the deposit?')"
+                              >
+                                <button
+                                  type="submit"
+                                  class="min-h-[48px] w-full cursor-pointer border-[1.5px] border-crimson bg-transparent text-[12px] font-semibold uppercase tracking-[.18em] text-crimson transition-colors hover:bg-crimson hover:text-cream"
+                                >
+                                  Cancel &amp; refund deposit
+                                </button>
+                              </form>
+                            </div>
+                          `
+                        : html`
+                            <p
+                              class="m-0 border-t border-ink/10 pt-3 text-[13px] leading-[1.5] text-ink/70"
+                            >
+                              They&rsquo;re at the payment page now. This becomes
+                              a booking when they pay, or the time reopens by
+                              itself.
+                            </p>
                           `}
-                    </li>
+                    </article>
                   `
                 )}
-              </ul>
+              </div>
             `}
       `
     )
   );
 });
 
-// Admin cancellation: no 48h cutoff — Lorena is doing the cancelling, so the
-// client always gets their deposit back. (Revisit if she ever needs to
-// cancel-without-refund, e.g. no-show policy enforcement.)
+// Admin cancellation: no notice cutoff — Lorena is doing the cancelling, so
+// the client always gets their full deposit back.
 app.post("/appointments/:id/cancel", async (c) => {
   const booking = await getBookingById(c.env.DB, c.req.param("id"));
   if (!booking || booking.status !== "confirmed") {
@@ -204,112 +270,118 @@ app.post("/appointments/:id/cancel", async (c) => {
 });
 
 // ---------- times ----------
+
+const fieldLabel = "text-[11px] font-semibold uppercase tracking-[.2em] text-ink";
+const timeInput =
+  "h-[52px] rounded-none border border-ink/30 bg-cream px-3.5 font-body text-[16px] text-ink outline-teal";
+
 app.get("/times", async (c) => {
   const slots = await listSlotsAdmin(c.env.DB, nowEpoch());
 
   return c.html(
-    adminPage(
+    adminShell(
       "Times",
       "times",
+      c.req.query("msg"),
       html`
-        ${banner(c.req.query("msg"))}
-
-        <h1 class="mt-6 font-display text-2xl font-bold text-crimson">
+        <h1 class="font-display m-0 text-[28px] font-medium italic text-ink">
           Add a time
         </h1>
-        <p class="mt-1 text-sm opacity-70">
-          Clients can book any open time. Make it as long as the treatment
-          needs — one appointment per time.
-        </p>
-        <form method="post" action="/admin/times" class="mt-4 space-y-4">
-          <label class="block">
-            <span class="text-sm">Date</span>
-            <input
-              type="date"
-              name="date"
-              required
-              class="mt-1 w-full rounded border border-teal/50 bg-white px-3 py-2"
-            />
+
+        <form
+          method="post"
+          action="/admin/times"
+          class="${cardClass} mt-4 gap-4 px-4 py-[18px]"
+        >
+          <label class="flex flex-col gap-[7px]">
+            <span class="${fieldLabel}">Date</span>
+            <input type="date" name="date" required class="${timeInput}" />
           </label>
-          <div class="flex gap-4">
-            <label class="block flex-1">
-              <span class="text-sm">From</span>
-              <input
-                type="time"
-                name="start"
-                required
-                class="mt-1 w-full rounded border border-teal/50 bg-white px-3 py-2"
-              />
+          <div class="grid grid-cols-2 gap-3">
+            <label class="flex flex-col gap-[7px]">
+              <span class="${fieldLabel}">From</span>
+              <input type="time" name="start" required class="${timeInput}" />
             </label>
-            <label class="block flex-1">
-              <span class="text-sm">Until</span>
-              <input
-                type="time"
-                name="end"
-                required
-                class="mt-1 w-full rounded border border-teal/50 bg-white px-3 py-2"
-              />
+            <label class="flex flex-col gap-[7px]">
+              <span class="${fieldLabel}">Until</span>
+              <input type="time" name="end" required class="${timeInput}" />
             </label>
           </div>
           <button
             type="submit"
-            class="w-full rounded bg-crimson px-6 py-3 font-medium text-cream"
+            class="min-h-[54px] cursor-pointer border-0 bg-crimson text-[12px] font-semibold uppercase tracking-[.2em] text-cream transition-colors hover:bg-crimson-deep"
           >
-            Add time
+            Add this time
           </button>
         </form>
 
-        <h1 class="mt-10 font-display text-2xl font-bold text-crimson">
+        <h2 class="font-display m-0 mt-[34px] text-[24px] font-medium italic text-ink">
           Your times
-        </h1>
+        </h2>
+
         ${slots.length === 0
-          ? html`<p class="mt-4 opacity-70">No upcoming times yet.</p>`
+          ? html`<p class="m-0 mt-3.5 text-[15px] text-ink/70">
+              No upcoming times yet — add one above.
+            </p>`
           : html`
-              <ul class="mt-4 space-y-3">
+              <div class="mt-3.5 flex flex-col gap-3.5">
                 ${slots.map((s) => {
-                  const state = s.booking_id
-                    ? s.booking_status === "confirmed"
-                      ? html`<span class="text-sm font-medium text-crimson"
-                          >Booked — ${s.client_name}</span
-                        >`
-                      : html`<span class="text-sm italic opacity-70"
-                          >Being booked right now…</span
-                        >`
-                    : s.status === "blocked"
-                      ? html`<span class="text-sm opacity-70">Blocked</span>`
-                      : html`<span class="text-sm text-teal">Open</span>`;
+                  const isBooked = s.booking_status === "confirmed";
+                  const isPending = !!s.booking_id && !isBooked;
+                  const isBlocked = !s.booking_id && s.status === "blocked";
+                  const isOpen = !s.booking_id && s.status === "open";
                   return html`
-                    <li
-                      class="flex items-center justify-between gap-3 rounded border border-teal/30 bg-white/60 p-4"
-                    >
-                      <div>
-                        <p class="font-medium">${formatLondonDay(s.starts_at)}</p>
-                        <p class="text-sm">
-                          ${formatLondonTime(s.starts_at)}&thinsp;–&thinsp;${formatLondonTime(s.ends_at)}
-                          · ${state}
-                        </p>
+                    <article class="${cardClass} gap-2.5 p-4">
+                      <div class="flex flex-wrap items-baseline justify-between gap-2.5">
+                        <div class="flex flex-col gap-0.5">
+                          <span class="${capsLine}">${formatLondonDayShort(s.starts_at)}</span>
+                          <span class="text-[15px] text-ink"
+                            >${formatLondonTime(s.starts_at)} –
+                            ${formatLondonTime(s.ends_at)}</span
+                          >
+                        </div>
+                        ${isBooked
+                          ? badge(`Booked — ${s.client_name ?? ""}`, "solid")
+                          : isPending
+                            ? badge("Being booked right now", "crimson")
+                            : isBlocked
+                              ? badge("Blocked", "muted")
+                              : badge("Open", "teal")}
                       </div>
-                      ${!s.booking_id
+                      ${isPending
+                        ? html`<p class="m-0 text-[13px] leading-[1.5] text-ink/70">
+                            Someone is paying for this time. If they don&rsquo;t
+                            finish, it reopens by itself.
+                          </p>`
+                        : ""}
+                      ${isOpen
                         ? html`
-                            <form
-                              method="post"
-                              action="/admin/times/${s.id}/${s.status === "blocked"
-                                ? "unblock"
-                                : "block"}"
-                            >
+                            <form method="post" action="/admin/times/${s.id}/block" class="m-0">
                               <button
                                 type="submit"
-                                class="shrink-0 rounded border border-teal/50 px-4 py-2 text-sm text-teal"
+                                class="min-h-[48px] w-full cursor-pointer border-[1.5px] border-ink/45 bg-transparent text-[12px] font-semibold uppercase tracking-[.18em] text-ink transition-colors hover:border-ink hover:bg-ink/5"
                               >
-                                ${s.status === "blocked" ? "Reopen" : "Block"}
+                                Block this time
                               </button>
                             </form>
                           `
                         : ""}
-                    </li>
+                      ${isBlocked
+                        ? html`
+                            <form method="post" action="/admin/times/${s.id}/unblock" class="m-0">
+                              <button
+                                type="submit"
+                                class="min-h-[48px] w-full cursor-pointer border-[1.5px] border-teal bg-transparent text-[12px] font-semibold uppercase tracking-[.18em] text-teal transition-colors hover:bg-teal hover:text-cream"
+                              >
+                                Reopen this time
+                              </button>
+                            </form>
+                          `
+                        : ""}
+                    </article>
                   `;
                 })}
-              </ul>
+              </div>
             `}
       `
     )

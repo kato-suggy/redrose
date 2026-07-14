@@ -17,6 +17,16 @@ export function formatLondonDay(epochSeconds: number): string {
   }).format(new Date(epochSeconds * 1000));
 }
 
+/** "Wed 15 July" — compact day headings in the admin. */
+export function formatLondonDayShort(epochSeconds: number): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    weekday: "short",
+    day: "numeric",
+    month: "long",
+  }).format(new Date(epochSeconds * 1000));
+}
+
 /** "10:00" — slot start/end times. */
 export function formatLondonTime(epochSeconds: number): string {
   return new Intl.DateTimeFormat("en-GB", {
