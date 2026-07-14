@@ -92,10 +92,10 @@ const adminShell = (
 ) => {
   const msg = MESSAGES[msgKey ?? ""];
   const here = active === "appointments" ? "/admin" : "/admin/times";
-  const tab = (href: string, label: string, on: boolean) => html`
+  const tab = (href: string, label: string, on: boolean, extra = "") => html`
     <a
       href="${href}"
-      class="flex min-h-[54px] items-center justify-center text-[12px] uppercase tracking-[.2em] no-underline ${on
+      class="flex min-h-[54px] items-center justify-center border border-crimson text-[12px] uppercase tracking-[.2em] no-underline ${extra} ${on
         ? "bg-crimson font-semibold text-cream"
         : "font-medium text-crimson hover:bg-crimson/5"}"
       >${label}</a
@@ -114,8 +114,8 @@ const adminShell = (
           >
         </header>
 
-        <nav class="grid grid-cols-2 border-y border-crimson">
-          ${tab("/admin", "Appointments", active === "appointments")}
+        <nav class="grid grid-cols-2">
+          ${tab("/admin", "Appointments", active === "appointments", "border-r-0")}
           ${tab("/admin/times", "Times", active === "times")}
         </nav>
 
