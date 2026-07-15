@@ -114,25 +114,53 @@ const FORM_ERRORS: Record<string, { title: string; body: string }> = {
 // ---------- booking-flow chrome (Booking Slot Picker / Outcomes .dc) ----------
 // Every page in the flow: centred column, Red Rose top bar, slim footer.
 
-const bookingShell = (title: string, inner: unknown) =>
-  layout(
+const bookingShell = (
+  title: string,
+  inner: unknown,
+  opts: { wide?: boolean } = {}
+) => {
+  // wide: the picker's desktop layout (1200px, two columns); outcome pages
+  // stay a centred narrow column at every width.
+  const w = opts.wide ?? false;
+  return layout(
     title,
     html`
-      <div class="mx-auto flex min-h-screen w-full max-w-[420px] flex-col">
+      <div
+        class="mx-auto flex min-h-screen w-full max-w-[420px] flex-col ${w
+          ? "md:max-w-[1200px] md:px-10"
+          : ""}"
+      >
         <header
-          class="flex items-baseline justify-between border-b border-crimson px-5 pb-3.5 pt-[18px]"
+          class="flex items-baseline justify-between border-b border-crimson px-5 pb-3.5 pt-[18px] ${w
+            ? "md:px-0 md:pb-[18px] md:pt-[26px]"
+            : ""}"
         >
           <a
             href="/"
-            class="font-display text-[18px] font-semibold italic text-crimson no-underline"
+            class="font-display text-[18px] font-semibold italic text-crimson no-underline ${w
+              ? "md:text-[20px]"
+              : ""}"
             >Red Rose</a
           >
-          <span class="text-[10px] uppercase tracking-[.22em] text-ink"
+          <span
+            class="text-[10px] uppercase tracking-[.22em] text-ink ${w
+              ? "md:text-[11px] md:tracking-[.24em]"
+              : ""}"
             >Ink &amp; Beauty · Newcastle</span
           >
         </header>
-        <main class="flex flex-1 flex-col px-5 pb-10 pt-7">${inner}</main>
-        <footer class="flex items-baseline justify-between border-t border-crimson p-5">
+        <main
+          class="flex flex-1 flex-col px-5 pb-10 pt-7 ${w
+            ? "md:px-0 md:pb-[72px] md:pt-9"
+            : ""}"
+        >
+          ${inner}
+        </main>
+        <footer
+          class="flex items-baseline justify-between border-t border-crimson p-5 ${w
+            ? "md:px-0 md:py-[22px]"
+            : ""}"
+        >
           <span class="text-[10px] uppercase tracking-[.2em] text-ink/60"
             >© 2026 ${site.businessName}</span
           >
@@ -143,6 +171,7 @@ const bookingShell = (title: string, inner: unknown) =>
       </div>
     `
   );
+};
 
 const bkKicker = (text: string, tone: "teal" | "crimson" = "teal") => html`
   <span
@@ -220,7 +249,7 @@ app.get("/book/:serviceId", async (c) => {
   const deposit = formatPence(pence(service.deposit_pence));
   const sectionMeta = site.sections.find((m) => m.key === service.section);
   const inputClass =
-    "h-[52px] rounded-none border border-ink/30 bg-paper px-3.5 font-body text-[16px] text-ink outline-teal";
+    "h-[52px] rounded-none border border-ink/30 bg-paper px-3.5 font-body text-[16px] text-ink outline-teal md:bg-cream";
   const fieldLabel =
     "text-[11px] font-semibold uppercase tracking-[.2em] text-ink";
 
@@ -235,18 +264,25 @@ app.get("/book/:serviceId", async (c) => {
             >
 
             <!-- service header -->
-            <div class="mt-[22px] flex flex-col gap-2">
-              ${sectionMeta
-                ? html`<span class="text-[11px] font-medium uppercase tracking-[.24em] text-teal"
-                    >${sectionMeta.number} — ${service.section}</span
-                  >`
-                : ""}
-              <h1
-                class="font-display m-0 text-[34px] font-medium italic leading-[1.1] text-ink"
+            <div
+              class="mt-[22px] flex flex-col gap-2 md:mt-[26px] md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-10"
+            >
+              <div class="flex flex-col gap-2 md:gap-2.5">
+                ${sectionMeta
+                  ? html`<span
+                      class="text-[11px] font-medium uppercase tracking-[.24em] text-teal md:text-[12px]"
+                      >${sectionMeta.number} — ${service.section}</span
+                    >`
+                  : ""}
+                <h1
+                  class="font-display m-0 text-[34px] font-medium italic leading-[1.1] text-ink md:text-[52px] md:leading-[1.08]"
+                >
+                  ${service.name}
+                </h1>
+              </div>
+              <p
+                class="m-0 mt-0.5 text-[12px] uppercase tracking-[.18em] text-ink md:mb-2 md:mt-0 md:text-[13px]"
               >
-                ${service.name}
-              </h1>
-              <p class="m-0 mt-0.5 text-[12px] uppercase tracking-[.18em] text-ink">
                 ${service.duration_mins} mins ·
                 <span class="font-semibold text-crimson"
                   >${formatPence(pence(service.price_pence))}</span
@@ -255,92 +291,109 @@ app.get("/book/:serviceId", async (c) => {
               </p>
             </div>
 
-            <hr class="mb-0 mt-[26px] border-0 border-t border-crimson" />
+            <hr class="mb-0 mt-[26px] border-0 border-t border-crimson md:mt-[30px]" />
 
             ${error
               ? html`<div
                   role="alert"
-                  class="mt-[22px] flex flex-col gap-0.5 border-[1.5px] border-crimson bg-crimson/5 px-4 py-3.5"
+                  class="mt-[22px] flex flex-col gap-0.5 border-[1.5px] border-crimson bg-crimson/5 px-4 py-3.5 md:mt-7 md:flex-row md:items-baseline md:gap-3.5 md:px-5 md:py-4"
                 >
-                  <span class="text-[11px] font-semibold uppercase tracking-[.2em] text-crimson"
+                  <span
+                    class="text-[11px] font-semibold uppercase tracking-[.2em] text-crimson md:whitespace-nowrap"
                     >${error.title}</span
                   >
                   <span class="text-[14px] leading-[1.5] text-ink">${error.body}</span>
                 </div>`
               : ""}
 
-            <section class="mt-[26px]">
-              <h2 class="font-display m-0 text-[22px] font-medium italic text-ink">
-                Pick a time
-              </h2>
-
-              ${days.size === 0
-                ? html`
-                    <div
-                      class="mt-[18px] flex flex-col items-center gap-3.5 border border-crimson/35 px-[22px] py-7 text-center"
+            ${days.size === 0
+              ? html`
+                  <section class="mt-[26px]">
+                    <h2
+                      class="font-display m-0 text-[22px] font-medium italic text-ink md:hidden"
                     >
-                      <p class="font-display m-0 text-[19px] italic leading-[1.4] text-ink">
+                      Pick a time
+                    </h2>
+                    <div
+                      class="mt-[18px] flex flex-col items-center gap-3.5 border border-crimson/35 px-[22px] py-7 text-center md:mx-auto md:mt-12 md:w-full md:max-w-[560px] md:gap-4 md:px-10 md:py-16"
+                    >
+                      <p
+                        class="font-display m-0 text-[19px] italic leading-[1.4] text-ink md:text-[24px]"
+                      >
                         No appointments open right now.
                       </p>
-                      <p class="m-0 text-[14px] leading-[1.55] text-ink/75">
+                      <p
+                        class="m-0 text-[14px] leading-[1.55] text-ink/75 md:max-w-[380px] md:text-[15px] md:leading-[1.6]"
+                      >
                         Lorena adds new times regularly. Message her on Instagram
                         and she&rsquo;ll let you know when the diary opens.
                       </p>
                       <a
                         href="${site.instagram}"
-                        class="inline-flex min-h-[48px] items-center justify-center border-[1.5px] border-crimson px-6 text-[12px] font-semibold uppercase tracking-[.2em] text-crimson no-underline transition-colors hover:bg-crimson hover:text-cream"
+                        class="inline-flex min-h-[48px] items-center justify-center border-[1.5px] border-crimson px-6 text-[12px] font-semibold uppercase tracking-[.2em] text-crimson no-underline transition-colors hover:bg-crimson hover:text-cream md:min-h-[50px] md:px-7"
                         >Message Lorena</a
                       >
                     </div>
-                  `
-                : html`
-                    <div class="mt-1.5 flex flex-col gap-[22px] pt-3" id="time-groups">
-                      ${[...days.entries()].map(
-                        ([day, daySlots]) => html`
-                          <fieldset class="m-0 flex flex-col gap-2.5 border-0 p-0">
-                            <legend
-                              class="m-0 p-0 text-[12px] font-semibold uppercase tracking-[.2em] text-ink"
-                            >
-                              ${day}
-                            </legend>
-                            <div class="flex flex-wrap gap-2.5">
-                              ${daySlots.map(
-                                (s) => html`
-                                  <label class="cursor-pointer">
-                                    <input
-                                      type="radio"
-                                      name="slot_id"
-                                      value="${s.id}"
-                                      form="booking-form"
-                                      class="peer sr-only"
-                                      required
-                                    />
-                                    <span
-                                      class="inline-flex min-h-[48px] items-center justify-center border-[1.5px] border-crimson/45 bg-paper px-5 text-[15px] tracking-[.04em] text-ink transition-colors peer-checked:border-crimson peer-checked:bg-crimson peer-checked:font-semibold peer-checked:text-cream"
-                                    >
-                                      ${formatLondonTime(s.starts_at)} –
-                                      ${formatLondonTime(s.ends_at)}
-                                    </span>
-                                  </label>
-                                `
-                              )}
-                            </div>
-                          </fieldset>
-                        `
-                      )}
-                    </div>
-                  `}
-            </section>
+                  </section>
+                `
+              : html`
+                  <!-- desktop: two columns — times left, sticky details right -->
+                  <div
+                    class="md:mt-10 md:grid md:grid-cols-[1fr_400px] md:items-start md:gap-[72px]"
+                  >
+                    <section class="mt-[26px] md:mt-0">
+                      <h2
+                        class="font-display m-0 text-[22px] font-medium italic text-ink md:text-[26px]"
+                      >
+                        Pick a time
+                      </h2>
+                      <div
+                        class="mt-1.5 flex flex-col gap-[22px] pt-3 md:mt-2 md:gap-[26px] md:pt-3.5"
+                        id="time-groups"
+                      >
+                        ${[...days.entries()].map(
+                          ([day, daySlots]) => html`
+                            <fieldset class="m-0 flex flex-col gap-2.5 border-0 p-0 md:gap-3">
+                              <legend
+                                class="m-0 p-0 text-[12px] font-semibold uppercase tracking-[.2em] text-ink"
+                              >
+                                ${day}
+                              </legend>
+                              <div class="flex flex-wrap gap-2.5 md:gap-3">
+                                ${daySlots.map(
+                                  (s) => html`
+                                    <label class="cursor-pointer">
+                                      <input
+                                        type="radio"
+                                        name="slot_id"
+                                        value="${s.id}"
+                                        form="booking-form"
+                                        class="peer sr-only"
+                                        required
+                                      />
+                                      <span
+                                        class="inline-flex min-h-[48px] items-center justify-center border-[1.5px] border-crimson/45 bg-paper px-5 text-[15px] tracking-[.04em] text-ink transition-colors peer-checked:border-crimson peer-checked:bg-crimson peer-checked:font-semibold peer-checked:text-cream md:px-[22px]"
+                                      >
+                                        ${formatLondonTime(s.starts_at)} –
+                                        ${formatLondonTime(s.ends_at)}
+                                      </span>
+                                    </label>
+                                  `
+                                )}
+                              </div>
+                            </fieldset>
+                          `
+                        )}
+                      </div>
+                    </section>
 
-            ${days.size > 0
-              ? html`
-                  <form method="post" action="/book" id="booking-form" class="mt-9 flex flex-col">
+                  <form method="post" action="/book" id="booking-form" class="mt-9 flex flex-col md:sticky md:top-8 md:mt-0 md:border md:border-crimson/35 md:bg-paper md:px-7 md:pb-7 md:pt-[30px]">
                     <input type="hidden" name="service_id" value="${service.id}" />
-                    <h2 class="font-display m-0 text-[22px] font-medium italic text-ink">
+                    <h2 class="font-display m-0 text-[22px] font-medium italic text-ink md:text-[26px]">
                       Your details
                     </h2>
 
-                    <div class="mt-[18px] flex flex-col gap-[18px]">
+                    <div class="mt-[18px] flex flex-col gap-[18px] md:mt-5">
                       <label class="flex flex-col gap-[7px]">
                         <span class="${fieldLabel}">Name</span>
                         <input
@@ -379,7 +432,7 @@ app.get("/book/:serviceId", async (c) => {
                       </label>
                     </div>
 
-                    <div class="mt-[26px] flex flex-col gap-2.5">
+                    <div class="mt-[26px] flex flex-col gap-2.5 md:mt-[22px]">
                       <p class="m-0 text-[13px] leading-[1.6] text-ink/75">
                         ${site.bookingNotice}
                       </p>
@@ -390,11 +443,12 @@ app.get("/book/:serviceId", async (c) => {
 
                     <button
                       type="submit"
-                      class="mt-[26px] min-h-[58px] cursor-pointer border-0 bg-crimson text-[13px] font-semibold uppercase tracking-[.2em] text-cream transition-colors hover:bg-crimson-deep disabled:opacity-40"
+                      class="mt-[26px] min-h-[58px] cursor-pointer border-0 bg-crimson text-[13px] font-semibold uppercase tracking-[.2em] text-cream transition-colors hover:bg-crimson-deep disabled:opacity-40 md:mt-6"
                     >
                       Continue to payment — ${deposit} deposit
                     </button>
                   </form>
+                  </div>
 
                   <script>
                     // Enhancement only: gate submit until a time is chosen.
@@ -411,9 +465,9 @@ app.get("/book/:serviceId", async (c) => {
                       update();
                     }
                   </script>
-                `
-              : ""}
-      `
+                `}
+      `,
+      { wide: true }
     )
   );
 });
